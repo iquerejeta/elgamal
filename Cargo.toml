@@ -1,7 +1,7 @@
 [package]
 name = "elgamal_ristretto"
-version = "0.0.1"
-authors = ["iquerejeta <querejeta.inigo@gmail.com>"]
+version = "0.1.0"
+authors = ["Inigo Querejeta <querejeta.inigo@gmail.com>"]
 edition = "2018"
 exclude = ["**/.gitignore", ".gitignore"]
 description = "A pure-Rust implementation of ElGamal encryption using the Ristretto group over Curve25519"
@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["cryptography", "elgamal", "additive-homomorphic"]
 categories = ["cryptography", "no-std"]
 repository = "https://github.com/iquerejeta/elgamal"
-liscense = "MIT Liscense"
+license = "MIT Liscense"
 
 
 [dependencies]
