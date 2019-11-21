@@ -10,12 +10,50 @@ use rand::rngs::OsRng;
 use rand::{CryptoRng, Rng};
 use sha2::{Digest, Sha512};
 
-/// PublicKey is represented by a RistrettoPoint
+/// The `PublicKey` struct represents an ElGamal public key.
 #[derive(Copy, Clone, Debug)]
 pub struct PublicKey(RistrettoPoint);
 
 impl PublicKey {
-    /// Encrypts a message in the Ristretto group for Curve25519
+    /// Encrypts a message in the Ristretto group. It has the additive homomorphic property,
+    /// allowing addition (and subtraction) by another ciphertext and multiplication (and division)
+    /// by scalars.
+    ///
+    /// #Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand::rngs::OsRng;
+    /// use elgamal_ristretto::{PublicKey, SecretKey};
+    /// use curve25519_dalek::ristretto::{RistrettoPoint, };
+    /// use curve25519_dalek::scalar::{Scalar, };
+    ///
+    /// # fn main() {
+    ///        let mut csprng = OsRng::new().unwrap();
+    ///        // Generate key pair
+    ///        let sk = SecretKey::new(&mut csprng);
+    ///        let pk = PublicKey::from(&sk);
+    ///
+    ///        // Generate random messages
+    ///        let ptxt1 = RistrettoPoint::random(&mut csprng);
+    ///        let ptxt2 = RistrettoPoint::random(&mut csprng);
+    ///
+    ///        // Encrypt messages
+    ///        let ctxt1 = pk.encrypt(ptxt1);
+    ///        let ctxt2 = pk.encrypt(ptxt2);
+    ///
+    ///        // Add ciphertexts and check that addition is maintained in the plaintexts
+    ///        let encrypted_addition = ctxt1 + ctxt2;
+    ///        let decrypted_addition = sk.decrypt(encrypted_addition);
+    ///
+    ///        assert_eq!(ptxt1 + ptxt2, decrypted_addition);
+    ///
+    ///        // Multiply by scalar and check that multiplication is maintained in the plaintext
+    ///        let scalar_mult = Scalar::random(&mut csprng);
+    ///        assert_eq!(sk.decrypt(ctxt1 * scalar_mult), scalar_mult * ptxt1);
+    /// # }
+    /// ```
     pub fn encrypt(
         self,
         message: RistrettoPoint,
@@ -32,7 +70,7 @@ impl PublicKey {
         }
     }
     
-    /// Encrypts a message in the Ristretto group for Curve25519 giving the randomization as
+    /// Encrypts a message in the Ristretto group giving the randomization as
     /// input. This is an unsafe function. It should only be used when the randomization is needed
     /// for another purpose, such as generating a proof of correct encryption, or encrypting another
     /// ciphertext with the same randomisation.
@@ -49,12 +87,38 @@ impl PublicKey {
         }
     }
 
-    /// Get public point of the public key
+    /// Get the public key as a RistrettoPoint
     pub fn get_point(&self) -> RistrettoPoint {
         self.0
     }
 
     /// Verify EdDSA signature
+    ///
+    /// #Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand::rngs::OsRng;
+    /// use elgamal_ristretto::{PublicKey, SecretKey};
+    /// use curve25519_dalek::ristretto::{RistrettoPoint, };
+    ///
+    /// # fn main() {
+    ///       // Generate key-pair
+    ///       let mut csprng = OsRng::new().unwrap();
+    ///       let sk = SecretKey::new(&mut csprng);
+    ///       let pk = PublicKey::from(&sk);
+    ///
+    ///       // Sign message
+    ///       let msg = RistrettoPoint::random(&mut csprng);
+    ///       let signature = sk.sign(msg);
+    ///       // Verify signature
+    ///       assert!(pk.verify(&msg, signature));
+    ///
+    ///       // Verify signature against incorrect message
+    ///       assert!(!pk.verify(&RistrettoPoint::random(&mut csprng), signature))
+    /// # }
+    /// ```
     pub fn verify(self, message: &RistrettoPoint, signature: (Scalar, RistrettoPoint)) -> bool {
         let verification_hash = Scalar::from_hash(
             Sha512::new()

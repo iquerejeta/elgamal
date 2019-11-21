@@ -1,7 +1,7 @@
 [package]
 name = "elgamal_ristretto"
 version = "0.1.0"
-authors = ["Inigo Querejeta <querejeta.inigo@gmail.com>"]
+authors = ["Inigo Querejeta Azurmendi <querejeta.inigo@gmail.com>, Gonçalo Pestana <g6pestana@gmail.com>"]
 edition = "2018"
 exclude = ["**/.gitignore", ".gitignore"]
 description = "A pure-Rust implementation of ElGamal encryption using the Ristretto group over Curve25519"
