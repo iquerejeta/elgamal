@@ -1,10 +1,15 @@
 [package]
-name = "elgamal"
-version = "0.1.0"
+name = "elgamal-ristretto"
+version = "0.0.1"
 authors = ["iquerejeta <querejeta.inigo@gmail.com>"]
 edition = "2018"
+exclude = ["**/.gitignore", ".gitignore"]
+description = "A pure-Rust implementation of ElGamal encryption using the Ristretto group over Curve25519"
+readme = "README.md"
+keywords = ["cryptography", "elgamal", "additive-homomorphic"]
+categories = ["cryptography", "no-std"]
+repository = "https://github.com/iquerejeta/elgamal"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 curve25519-dalek = { version = "1", default-features = false, features = ["serde"] }
@@ -12,9 +17,6 @@ rand_core = { version = "0.5", default-features = false }
 rand = { version = "0.6.0", default-features = true }
 sha2 = "0.8.0"
 clear_on_drop = { version = "0.2" }
-
-[dev-dependencies]
-criterion = "0.2"
 
 [features]
 default = ["std", "u64_backend"]
