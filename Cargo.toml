@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["cryptography", "elgamal", "additive-homomorphic"]
 categories = ["cryptography", "no-std"]
 repository = "https://github.com/iquerejeta/elgamal"
-license = "MIT Liscense"
+license = "MIT"
 
 
 [dependencies]
