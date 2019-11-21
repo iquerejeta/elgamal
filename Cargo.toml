@@ -1,5 +1,5 @@
 [package]
-name = "elgamal-ristretto"
+name = "elgamal_ristretto"
 version = "0.0.1"
 authors = ["iquerejeta <querejeta.inigo@gmail.com>"]
 edition = "2018"
@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["cryptography", "elgamal", "additive-homomorphic"]
 categories = ["cryptography", "no-std"]
 repository = "https://github.com/iquerejeta/elgamal"
+liscense = "MIT Liscense"
 
 
 [dependencies]
