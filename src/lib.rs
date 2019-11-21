@@ -21,10 +21,11 @@ impl PublicKey {
         message: RistrettoPoint,
     ) -> Ciphertext {
         let mut csprng: OsRng = OsRng::new().unwrap();
-        let random: Scalar = Scalar::random(&mut csprng);
+        let mut random: Scalar = Scalar::random(&mut csprng);
 
         let random_generator = &RISTRETTO_BASEPOINT_TABLE * &random;
         let encrypted_plaintext = message + &self.0 * &random;
+        random.clear();
         Ciphertext {
             pk: self,
             points: (random_generator, encrypted_plaintext),
@@ -67,13 +68,6 @@ impl PublicKey {
         check
     }
 
-    /// Generates a public key based on two public keys such that both private keys are needed to
-    /// decrypt a ciphertext encrypted with this key.
-    // todo: non standard. Maybe remove it from the library
-    pub fn combine_keys(self, other_pk: PublicKey) -> PublicKey {
-        PublicKey(self.0 + other_pk.0)
-    }
-
     /// Convert to bytes
     pub fn to_bytes(&self) -> [u8; 32] {
         self.0.compress().to_bytes()
@@ -114,16 +108,6 @@ impl SecretKey {
     pub fn decrypt(&self, ciphertext: Ciphertext) -> RistrettoPoint {
         let (point1, point2) = ciphertext.get_points();
         point2 - point1 * self.0
-    }
-
-    /// Partially decrypt a ciphertext encrypted under a combined key.
-    /// todo: this is probably not elegant
-    pub fn partial_decrypt(self, ct: Ciphertext) -> Ciphertext {
-        let (point1, point2) = ct.get_points();
-        Ciphertext {
-            pk: ct.pk,
-            points: (point1, point2 - point1 * self.0),
-        }
     }
 
     /// Sign a message using EdDSA algorithm.
@@ -242,6 +226,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_encryption() {
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt = RistrettoPoint::random(&mut csprng);
+
+        let ctxt = pk.encrypt(ptxt);
+        assert_eq!(ptxt, sk.decrypt(ctxt));
+    }
+
+    #[test]
+    fn test_encryption_dirty() {
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt = RistrettoPoint::random(&mut csprng);
+        unsafe {
+            let mut random_encryption = Scalar::random(&mut csprng);
+            let ctxt = pk.encrypt_dirty(ptxt, random_encryption);
+            random_encryption.clear();
+            assert_eq!(ptxt, sk.decrypt(ctxt));
+        }
+    }
+
+    #[test]
     fn test_byte_conversion() {
         let mut csprng = OsRng::new().unwrap();
         let sk = SecretKey::new(&mut csprng);
@@ -262,6 +273,19 @@ mod tests {
         let msg = RistrettoPoint::random(&mut csprng);
         let signature = sk.sign(msg);
         assert!(pk.verify(&msg, signature));
+    }
+
+    #[test]
+    fn test_signature_failure() {
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let msg = RistrettoPoint::random(&mut csprng);
+        let msg_unsigned = RistrettoPoint::random(&mut csprng);
+        let signature = sk.sign(msg);
+
+        assert!(!pk.verify(&msg_unsigned, signature));
     }
 
     #[test]
@@ -316,24 +340,5 @@ mod tests {
         let mult_dec_pltxt = sk.decrypt(mult_ctxt);
 
         assert_eq!(mult_dec_pltxt, mult_pltxt);
-    }
-
-    #[test]
-    fn test_partial_decryption() {
-        let mut csprng = OsRng::new().unwrap();
-        let sk1 = SecretKey::new(&mut csprng);
-        let pk1 = PublicKey::from(&sk1);
-
-        let sk2 = SecretKey::new(&mut csprng);
-        let pk2 = PublicKey::from(&sk2);
-
-        let master_key = pk1.combine_keys(pk2);
-
-        let msg = RistrettoPoint::random(&mut csprng);
-        let ctxt = master_key.encrypt(msg);
-        let partial_decryption = sk1.partial_decrypt(ctxt);
-        let full_decryption = sk2.partial_decrypt(partial_decryption);
-
-        assert_eq!(msg, full_decryption.points.1);
     }
 }
