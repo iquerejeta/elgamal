@@ -2,7 +2,7 @@
 pub mod macros;
 
 use clear_on_drop::clear::Clear;
-use core::ops::{Mul, Add, Sub};
+use core::ops::{Mul, Div, Add, Sub};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
 use curve25519_dalek::scalar::Scalar;
@@ -221,9 +221,23 @@ impl<'a, 'b> Mul<&'b Scalar> for &'a Ciphertext {
 
 define_mul_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
 
+impl<'a, 'b> Div<&'b Scalar> for &'a Ciphertext {
+    type Output = Ciphertext;
+
+    fn div(self, other: &'b Scalar) -> Ciphertext {
+        Ciphertext {
+            pk: self.pk,
+            points: (&self.points.0 * &other.invert(), &self.points.1 * &other.invert()),
+        }
+    }
+}
+
+define_div_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 
     #[test]
     fn test_encryption() {
@@ -340,5 +354,21 @@ mod tests {
         let mult_dec_pltxt = sk.decrypt(mult_ctxt);
 
         assert_eq!(mult_dec_pltxt, mult_pltxt);
+    }
+
+    #[test]
+    fn test_division_by_scalar() {
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let div_factor: Scalar = Scalar::random(&mut csprng);
+        let pltxt: RistrettoPoint = div_factor * RISTRETTO_BASEPOINT_POINT;
+        let enc_pltxt = pk.encrypt(pltxt);
+
+        let div_ctxt = enc_pltxt / div_factor;
+        let div_dec_pltxt = sk.decrypt(div_ctxt);
+
+        assert_eq!(div_dec_pltxt, RISTRETTO_BASEPOINT_POINT);
     }
 }
