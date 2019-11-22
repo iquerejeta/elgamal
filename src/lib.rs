@@ -2,16 +2,17 @@
 pub mod macros;
 
 use clear_on_drop::clear::Clear;
-use core::ops::{Mul, Div, Add, Sub};
+use core::ops::{Add, Div, Mul, Sub};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
-use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use rand::rngs::OsRng;
 use rand::{CryptoRng, Rng};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
 /// The `PublicKey` struct represents an ElGamal public key.
-#[derive(Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct PublicKey(RistrettoPoint);
 
 impl PublicKey {
@@ -54,10 +55,7 @@ impl PublicKey {
     ///        assert_eq!(sk.decrypt(ctxt1 * scalar_mult), scalar_mult * ptxt1);
     /// # }
     /// ```
-    pub fn encrypt(
-        self,
-        message: RistrettoPoint,
-    ) -> Ciphertext {
+    pub fn encrypt(self, message: RistrettoPoint) -> Ciphertext {
         let mut csprng: OsRng = OsRng::new().unwrap();
         let mut random: Scalar = Scalar::random(&mut csprng);
 
@@ -69,12 +67,12 @@ impl PublicKey {
             points: (random_generator, encrypted_plaintext),
         }
     }
-    
+
     /// Encrypts a message in the Ristretto group giving the randomization as
     /// input. This is an unsafe function. It should only be used when the randomization is needed
     /// for another purpose, such as generating a proof of correct encryption, or encrypting another
     /// ciphertext with the same randomisation.
-    unsafe fn encrypt_dirty(
+    pub unsafe fn encrypt_dirty(
         self,
         message: RistrettoPoint,
         random_encryption: Scalar,
@@ -186,11 +184,11 @@ impl SecretKey {
 
         let signature_scalar = random_signature
             + Scalar::from_hash(
-            Sha512::new()
-                .chain(signature_point.compress().to_bytes())
-                .chain(pk.0.compress().to_bytes())
-                .chain(message.compress().to_bytes()),
-        ) * self.0;
+                Sha512::new()
+                    .chain(signature_point.compress().to_bytes())
+                    .chain(pk.0.compress().to_bytes())
+                    .chain(message.compress().to_bytes()),
+            ) * self.0;
 
         (signature_scalar, signature_point)
     }
@@ -222,7 +220,7 @@ fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
     Scalar::from_bits(s)
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct Ciphertext {
     pub pk: PublicKey,
     pub points: (RistrettoPoint, RistrettoPoint),
@@ -291,7 +289,10 @@ impl<'a, 'b> Div<&'b Scalar> for &'a Ciphertext {
     fn div(self, other: &'b Scalar) -> Ciphertext {
         Ciphertext {
             pk: self.pk,
-            points: (&self.points.0 * &other.invert(), &self.points.1 * &other.invert()),
+            points: (
+                &self.points.0 * &other.invert(),
+                &self.points.1 * &other.invert(),
+            ),
         }
     }
 }
@@ -434,5 +435,37 @@ mod tests {
         let div_dec_pltxt = sk.decrypt(div_ctxt);
 
         assert_eq!(div_dec_pltxt, RISTRETTO_BASEPOINT_POINT);
+    }
+
+    #[test]
+    fn test_serde_pubkey() {
+        use bincode;
+
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let encoded = bincode::serialize(&pk).unwrap();
+        let decoded: PublicKey = bincode::deserialize(&encoded).unwrap();
+
+        assert_eq!(pk, decoded);
+    }
+
+    #[test]
+    fn test_serde_ciphertext() {
+        use bincode;
+
+        let mut csprng = OsRng::new().unwrap();
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext: RistrettoPoint = RistrettoPoint::random(&mut csprng);
+        let enc_plaintext = pk.encrypt(plaintext);
+
+        let encoded = bincode::serialize(&enc_plaintext).unwrap();
+        let decoded: Ciphertext = bincode::deserialize(&encoded).unwrap();
+
+        assert_eq!(enc_plaintext.pk, decoded.pk);
+        assert_eq!(enc_plaintext.points, decoded.points);
     }
 }
