@@ -7,4 +7,3 @@ encryption scheme using the Ristretto primer order group over Curve25519. Librar
 **Important**: while we have followed recommendations regarding the scheme itself, this library should currently be seen
  as an experimental implementation. In particular, no particular efforts have so far been made to harden it against
  non-cryptographic attacks, including side-channel attacks.
-

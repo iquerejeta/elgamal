@@ -21,6 +21,13 @@ clear_on_drop = { version = "0.2" }
 serde = { version = "1.0", features = ["derive"] }
 bincode = "1"
 
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "elgamal-ristretto"
+harness = false
+
 [features]
 default = ["std", "u64_backend"]
 std = ["curve25519-dalek/std"]
