@@ -139,6 +139,11 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> PublicKey {
         PublicKey(CompressedRistretto::from_slice(bytes).decompress().unwrap())
     }
+
+    /// Generates public key from RistrettoPoint
+    pub fn from_point(point: RistrettoPoint) -> PublicKey {
+        PublicKey(point)
+    }
 }
 
 impl PartialEq for PublicKey {
@@ -170,6 +175,15 @@ impl SecretKey {
     pub fn decrypt(&self, ciphertext: Ciphertext) -> RistrettoPoint {
         let (point1, point2) = ciphertext.get_points();
         point2 - point1 * self.0
+    }
+
+    /// Partially decrypts a ciphertext
+    pub fn partial_decrypt(self, ct: Ciphertext) -> Ciphertext {
+        let (point1, point2) = ct.get_points();
+        Ciphertext {
+            pk: ct.pk,
+            points: (point1, point2 - point1 * self.0),
+        }
     }
 
     /// Sign a message using EdDSA algorithm.
