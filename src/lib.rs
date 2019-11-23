@@ -203,6 +203,13 @@ impl From<RistrettoPoint> for PublicKey {
     }
 }
 
+impl<'a> From<&'a SecretKey> for PublicKey {
+    /// Given a secret key, compute its corresponding Public key
+    fn from(secret: &'a SecretKey) -> PublicKey {
+        PublicKey(&RISTRETTO_BASEPOINT_POINT * &secret.0)
+    }
+}
+
 impl PartialEq for PublicKey {
     fn eq(&self, other: &PublicKey) -> bool {
         self.0 == other.0
@@ -272,60 +279,6 @@ impl<'a, 'b> Mul<&'b Scalar> for &'a SecretKey {
 }
 
 define_mul_variants!(LHS = SecretKey, RHS = Scalar, Output = Scalar);
-
-impl<'a> From<&'a SecretKey> for PublicKey {
-    /// Given a secret key, compute its corresponding Public key
-    fn from(secret: &'a SecretKey) -> PublicKey {
-        PublicKey(&RISTRETTO_BASEPOINT_POINT * &secret.0)
-    }
-}
-
-/// Description of ZK statement for the proof of knowledge of DL
-fn dlog_knowledge_statement<CS: SchnorrCS>(
-    cs: &mut CS,
-    dlog: CS::ScalarVar,
-    value: CS::PointVar,
-    base: CS::PointVar,
-) {
-    cs.constrain(value, vec![(dlog, base)])
-}
-
-fn prove_dlog_knowledge(dlog: Scalar, base: RistrettoPoint, value: RistrettoPoint) -> CompactProof {
-
-    let mut transcript = Transcript::new(b"DLKnowledge");
-    let mut prover = Prover::new(b"DLKnowledgeProof", &mut transcript);
-
-    // XXX committing var names to transcript forces ordering (?)
-    let var_dlog = prover.allocate_scalar(b"dlog", dlog);
-    let (var_base, _) = prover.allocate_point(b"Base", base);
-    let (var_value, _) = prover.allocate_point(b"Value", value);
-
-    dlog_knowledge_statement(&mut prover, var_dlog, var_value, var_base);
-
-    prover.prove_compact()
-}
-
-fn verify_dlog_knowledge_proof(base: CompressedRistretto, value: CompressedRistretto, proof: CompactProof) -> bool {
-    let mut transcript = Transcript::new(b"DLKnowledge");
-    let mut verifier = Verifier::new(b"DLKnowledgeProof", &mut transcript);
-
-    let var_dlog = verifier.allocate_scalar(b"dlog");
-    let var_base = verifier.allocate_point(b"Base", base).unwrap();
-    let var_value = verifier.allocate_point(b"Value", value).unwrap();
-
-    dlog_knowledge_statement(&mut verifier, var_dlog, var_value, var_base);
-
-    verifier.verify_compact(&proof).is_ok()
-}
-
-// "Decode" a scalar from a 32-byte array. Read more regarding this key clamping.
-fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
-    let mut s: [u8; 32] = scalar.clone();
-    s[0] &= 248;
-    s[31] &= 127;
-    s[31] |= 64;
-    Scalar::from_bits(s)
-}
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct Ciphertext {
@@ -415,6 +368,53 @@ impl<'a, 'b> Div<&'b Scalar> for &'a Ciphertext {
 }
 
 define_div_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
+
+/// Description of ZK statement for the proof of knowledge of DL
+fn dlog_knowledge_statement<CS: SchnorrCS>(
+    cs: &mut CS,
+    dlog: CS::ScalarVar,
+    value: CS::PointVar,
+    base: CS::PointVar,
+) {
+    cs.constrain(value, vec![(dlog, base)])
+}
+
+fn prove_dlog_knowledge(dlog: Scalar, base: RistrettoPoint, value: RistrettoPoint) -> CompactProof {
+
+    let mut transcript = Transcript::new(b"DLKnowledge");
+    let mut prover = Prover::new(b"DLKnowledgeProof", &mut transcript);
+
+    // XXX committing var names to transcript forces ordering (?)
+    let var_dlog = prover.allocate_scalar(b"dlog", dlog);
+    let (var_base, _) = prover.allocate_point(b"Base", base);
+    let (var_value, _) = prover.allocate_point(b"Value", value);
+
+    dlog_knowledge_statement(&mut prover, var_dlog, var_value, var_base);
+
+    prover.prove_compact()
+}
+
+fn verify_dlog_knowledge_proof(base: CompressedRistretto, value: CompressedRistretto, proof: CompactProof) -> bool {
+    let mut transcript = Transcript::new(b"DLKnowledge");
+    let mut verifier = Verifier::new(b"DLKnowledgeProof", &mut transcript);
+
+    let var_dlog = verifier.allocate_scalar(b"dlog");
+    let var_base = verifier.allocate_point(b"Base", base).unwrap();
+    let var_value = verifier.allocate_point(b"Value", value).unwrap();
+
+    dlog_knowledge_statement(&mut verifier, var_dlog, var_value, var_base);
+
+    verifier.verify_compact(&proof).is_ok()
+}
+
+// "Decode" a scalar from a 32-byte array. Read more regarding this key clamping.
+fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
+    let mut s: [u8; 32] = scalar.clone();
+    s[0] &= 248;
+    s[31] &= 127;
+    s[31] |= 64;
+    Scalar::from_bits(s)
+}
 
 #[cfg(test)]
 mod tests {
