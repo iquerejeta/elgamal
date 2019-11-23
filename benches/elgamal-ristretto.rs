@@ -54,7 +54,6 @@ fn signature(c: &mut Criterion) {
         move |b| {
             let mut csprng = OsRng::new().unwrap();
             let sk = SecretKey::new(&mut csprng);
-            let pk = PublicKey::from(&sk);
 
             let msg = RistrettoPoint::random(&mut csprng);
 
@@ -72,12 +71,13 @@ fn verify_signature(c: &mut Criterion) {
         move |b| {
             let mut csprng = OsRng::new().unwrap();
             let sk = SecretKey::new(&mut csprng);
+            let pk = PublicKey::from(&sk);
 
             let msg = RistrettoPoint::random(&mut csprng);
             let signature = sk.sign(msg);
 
             b.iter(|| {
-                pk.verify(&msg, signature)
+                pk.verify_signature(&msg, signature)
             })
         }
     );
@@ -99,7 +99,7 @@ fn ciphertext_addition(c: &mut Criterion) {
             let ctxt2 = pk.encrypt(ptxt2);
 
             b.iter(|| {
-                ctxt1 + ctxt2;
+                let _ = ctxt1 + ctxt2;
             })
         }
     );
