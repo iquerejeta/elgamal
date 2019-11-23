@@ -72,10 +72,30 @@ impl PublicKey {
         }
     }
 
-    /// Encrypts a message in the Ristretto group giving the randomization as
-    /// input. This is an unsafe function. It should only be used when the randomization is needed
-    /// for another purpose, such as generating a proof of correct encryption, or encrypting another
-    /// ciphertext with the same randomisation.
+    /// Encrypts a message in the Ristretto group and generates a proof of correct encryption
+    ///
+    /// #Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand::rngs::OsRng;
+    /// use elgamal_ristretto::{PublicKey, SecretKey};
+    /// use curve25519_dalek::ristretto::{RistrettoPoint, };
+    ///
+    /// # fn main() {
+    /// let mut csprng = OsRng::new().unwrap();
+    ///        let sk = SecretKey::new(&mut csprng);
+    ///        let pk = PublicKey::from(&sk);
+    ///
+    ///        let plaintext = RistrettoPoint::random(&mut csprng);
+    ///        // Encrypt plaintext and generate proof
+    ///        let (enc_plaintext, proof) = pk.encrypt_and_prove(plaintext);
+    ///
+    ///        // Verify proof
+    ///        assert!(enc_plaintext.verify_correct_encryption(&plaintext, proof));
+    /// # }
+    /// ```
     pub fn encrypt_and_prove(
         self,
         message: RistrettoPoint,
@@ -142,6 +162,25 @@ impl PublicKey {
     }
 
     /// Verify proof of knowledege of private key related to a public key
+    ///
+    /// Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand::rngs::OsRng;
+    /// use elgamal_ristretto::{PublicKey, SecretKey};
+    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    ///
+    /// # fn main() {
+    ///       let mut csprng = OsRng::new().unwrap();
+    ///       let sk = SecretKey::new(&mut csprng);
+    ///       let pk = PublicKey::from(&sk);
+    ///
+    ///       let proof = sk.prove_knowledge();
+    ///       assert!(pk.verify_proof_knowledge(proof));
+    /// # }
+    /// ```
     pub fn verify_proof_knowledge(self, proof: CompactProof) -> bool {
         verify_dlog_knowledge_proof(RISTRETTO_BASEPOINT_COMPRESSED, self.get_point().compress(), proof)
     }
