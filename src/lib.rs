@@ -19,7 +19,7 @@ define_proof! {dl_knowledge, "DLKnowledge Proof", (x), (A), (B) : A = (x * B)}
 define_proof! {dleq, "DLEQ Proof", (x), (A, B, H), (G) : A = (x * B), H = (x * G)}
 
 /// The `PublicKey` struct represents an ElGamal public key.
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
 pub struct PublicKey(RistrettoPoint);
 
 impl PublicKey {
@@ -249,6 +249,9 @@ impl PublicKey {
     pub fn to_bytes(&self) -> [u8; 32] {
         self.0.compress().to_bytes()
     }
+
+    /// View as bytes
+    pub fn as_bytes<'a>(&'a self) -> &'a [u8; 32] { &(self.to_bytes()) }
 
     /// Generate public key from bytes
     pub fn from_bytes(bytes: &[u8]) -> PublicKey {
