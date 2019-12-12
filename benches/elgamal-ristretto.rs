@@ -7,7 +7,7 @@ extern crate rand;
 extern crate curve25519_dalek;
 
 use elgamal_ristretto::{PublicKey, SecretKey, };
-use rand::rngs::OsRng;
+use rand_core::OsRng;
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 fn encrypt_ciphertext(c: &mut Criterion) {
@@ -15,7 +15,7 @@ fn encrypt_ciphertext(c: &mut Criterion) {
     c.bench_function(
         &label,
         move |b| {
-            let mut csprng = OsRng::new().unwrap();
+            let mut csprng = OsRng;
             let sk = SecretKey::new(&mut csprng);
             let pk = PublicKey::from(&sk);
 
@@ -33,7 +33,7 @@ fn decrypt_ciphertext(c: &mut Criterion) {
     c.bench_function(
         &label,
         move |b| {
-            let mut csprng = OsRng::new().unwrap();
+            let mut csprng = OsRng;
             let sk = SecretKey::new(&mut csprng);
             let pk = PublicKey::from(&sk);
 
@@ -52,7 +52,7 @@ fn signature(c: &mut Criterion) {
     c.bench_function(
         &label,
         move |b| {
-            let mut csprng = OsRng::new().unwrap();
+            let mut csprng = OsRng;
             let sk = SecretKey::new(&mut csprng);
 
             let msg = RistrettoPoint::random(&mut csprng);
@@ -69,7 +69,7 @@ fn verify_signature(c: &mut Criterion) {
     c.bench_function(
         &label,
         move |b| {
-            let mut csprng = OsRng::new().unwrap();
+            let mut csprng = OsRng;
             let sk = SecretKey::new(&mut csprng);
             let pk = PublicKey::from(&sk);
 
@@ -88,7 +88,7 @@ fn ciphertext_addition(c: &mut Criterion) {
     c.bench_function(
         &label,
         move |b| {
-            let mut csprng = OsRng::new().unwrap();
+            let mut csprng = OsRng;
             let sk = SecretKey::new(&mut csprng);
             let pk = PublicKey::from(&sk);
 

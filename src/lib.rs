@@ -6,8 +6,7 @@ use core::ops::{Add, Div, Mul, Sub};
 use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_COMPRESSED};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand::rngs::OsRng;
-use rand::{CryptoRng, Rng};
+use rand_core::{RngCore, CryptoRng, OsRng, };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
@@ -32,13 +31,13 @@ impl PublicKey {
     /// extern crate rand;
     /// extern crate curve25519_dalek;
     /// extern crate elgamal_ristretto;
-    /// use rand::rngs::OsRng;
+    /// use rand_core::OsRng;
     /// use elgamal_ristretto::{PublicKey, SecretKey};
     /// use curve25519_dalek::ristretto::{RistrettoPoint, };
     /// use curve25519_dalek::scalar::{Scalar, };
     ///
     /// # fn main() {
-    ///        let mut csprng = OsRng::new().unwrap();
+    ///        let mut csprng = OsRng;
     ///        // Generate key pair
     ///        let sk = SecretKey::new(&mut csprng);
     ///        let pk = PublicKey::from(&sk);
@@ -63,7 +62,7 @@ impl PublicKey {
     /// # }
     /// ```
     pub fn encrypt(self, message: RistrettoPoint) -> Ciphertext {
-        let mut csprng: OsRng = OsRng::new().unwrap();
+        let mut csprng: OsRng = OsRng;
         let mut random: Scalar = Scalar::random(&mut csprng);
 
         let random_generator = &RISTRETTO_BASEPOINT_POINT * &random;
@@ -82,12 +81,12 @@ impl PublicKey {
     /// extern crate rand;
     /// extern crate curve25519_dalek;
     /// extern crate elgamal_ristretto;
-    /// use rand::rngs::OsRng;
+    /// use rand_core::OsRng;
     /// use elgamal_ristretto::{PublicKey, SecretKey};
     /// use curve25519_dalek::ristretto::{RistrettoPoint, };
     ///
     /// # fn main() {
-    /// let mut csprng = OsRng::new().unwrap();
+    /// let mut csprng = OsRng;
     ///        let sk = SecretKey::new(&mut csprng);
     ///        let pk = PublicKey::from(&sk);
     ///
@@ -103,7 +102,7 @@ impl PublicKey {
         self,
         message: RistrettoPoint,
     ) -> (Ciphertext, CompactProof) {
-        let mut csprng: OsRng = OsRng::new().unwrap();
+        let mut csprng: OsRng = OsRng;
         let mut random: Scalar = Scalar::random(&mut csprng);
 
         let random_generator = &RISTRETTO_BASEPOINT_POINT * &random;
@@ -143,13 +142,13 @@ impl PublicKey {
     /// extern crate rand;
     /// extern crate curve25519_dalek;
     /// extern crate elgamal_ristretto;
-    /// use rand::rngs::OsRng;
+    /// use rand_core::OsRng;
     /// use elgamal_ristretto::{PublicKey, SecretKey};
     /// use curve25519_dalek::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
     ///       // Generate key-pair
-    ///       let mut csprng = OsRng::new().unwrap();
+    ///       let mut csprng = OsRng;
     ///       let sk = SecretKey::new(&mut csprng);
     ///       let pk = PublicKey::from(&sk);
     ///
@@ -183,12 +182,12 @@ impl PublicKey {
     /// extern crate rand;
     /// extern crate curve25519_dalek;
     /// extern crate elgamal_ristretto;
-    /// use rand::rngs::OsRng;
+    /// use rand_core::OsRng;
     /// use elgamal_ristretto::{PublicKey, SecretKey};
     /// use curve25519_dalek::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
-    ///       let mut csprng = OsRng::new().unwrap();
+    ///       let mut csprng = OsRng;
     ///       let sk = SecretKey::new(&mut csprng);
     ///       let pk = PublicKey::from(&sk);
     ///
@@ -215,12 +214,12 @@ impl PublicKey {
     /// extern crate rand;
     /// extern crate curve25519_dalek;
     /// extern crate elgamal_ristretto;
-    /// use rand::rngs::OsRng;
+    /// use rand_core::OsRng;
     /// use elgamal_ristretto::{PublicKey, SecretKey};
     /// use curve25519_dalek::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
-    ///    let mut csprng = OsRng::new().unwrap();
+    ///    let mut csprng = OsRng;
     ///    let sk = SecretKey::new(&mut csprng);
     ///    let pk = PublicKey::from(&sk);
     ///
@@ -289,7 +288,7 @@ impl Drop for SecretKey {
 
 impl SecretKey {
     /// Create new SecretKey
-    pub fn new<T: Rng + CryptoRng>(csprng: &mut T) -> Self {
+    pub fn new<T: RngCore + CryptoRng>(csprng: &mut T) -> Self {
         let mut bytes = [0u8; 32];
         csprng.fill_bytes(&mut bytes);
         SecretKey(clamp_scalar(bytes))
@@ -480,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_encryption() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -492,7 +491,7 @@ mod tests {
 
     #[test]
     fn test_byte_conversion() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -504,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_signature() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -515,7 +514,7 @@ mod tests {
 
     #[test]
     fn test_signature_failure() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -528,7 +527,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_addition() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -546,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_subtraction() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -565,7 +564,7 @@ mod tests {
     #[test]
     fn test_multiplication_by_scalar() {
         // generates public private pair
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -582,7 +581,7 @@ mod tests {
 
     #[test]
     fn test_division_by_scalar() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -600,7 +599,7 @@ mod tests {
     fn test_serde_pubkey() {
         use bincode;
 
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -614,7 +613,7 @@ mod tests {
     fn test_serde_ciphertext() {
         use bincode;
 
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -630,7 +629,7 @@ mod tests {
 
     #[test]
     fn create_and_verify_sk_knowledge() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -640,7 +639,7 @@ mod tests {
 
     #[test]
     fn create_and_verify_fake_sk_knowledge() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let fake_pk = PublicKey::from(RistrettoPoint::random(&mut csprng));
 
@@ -650,7 +649,7 @@ mod tests {
 
     #[test]
     fn prove_and_verify_correct_encryption() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -662,7 +661,7 @@ mod tests {
 
     #[test]
     fn prove_and_verify_incorrect_encryption() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -675,7 +674,7 @@ mod tests {
 
     #[test]
     fn prove_correct_decryption() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
@@ -690,7 +689,7 @@ mod tests {
 
     #[test]
     fn prove_false_decryption() {
-        let mut csprng = OsRng::new().unwrap();
+        let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
         let pk = PublicKey::from(&sk);
 
