@@ -15,11 +15,11 @@ use sha2::{Digest, Sha512};
 extern crate zkp;
 use zkp::{Transcript, CompactProof, };
 
-define_proof! {dl_knowledge, "DLKnowledge Proof", (x), (A), (B) : A = (x * B)}
+define_proof! {dl_knowledge, "DLKnowledge Proof", (x), (A), (G) : A = (x * G)}
 define_proof! {dleq, "DLEQ Proof", (x), (A, B, H), (G) : A = (x * B), H = (x * G)}
 
 /// The `PublicKey` struct represents an ElGamal public key.
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct PublicKey(RistrettoPoint);
 
 impl PublicKey {
@@ -203,7 +203,7 @@ impl PublicKey {
             &mut transcript,
             dl_knowledge::VerifyAssignments {
                 A: &self.0.compress(),
-                B: &RISTRETTO_BASEPOINT_COMPRESSED,
+                G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
         ).is_ok()
     }
@@ -240,7 +240,7 @@ impl PublicKey {
             &mut transcript,
             dl_knowledge::VerifyAssignments {
                 A: &(ciphertext.points.1 - plaintext).compress(),
-                B: &ciphertext.points.0.compress(),
+                G: &ciphertext.points.0.compress(),
             },
         ).is_ok()
     }
@@ -249,9 +249,6 @@ impl PublicKey {
     pub fn to_bytes(&self) -> [u8; 32] {
         self.0.compress().to_bytes()
     }
-
-    /// View as bytes
-    pub fn as_bytes<'a>(&'a self) -> &'a [u8; 32] { &(self.to_bytes()) }
 
     /// Generate public key from bytes
     pub fn from_bytes(bytes: &[u8]) -> PublicKey {
@@ -336,7 +333,7 @@ impl SecretKey {
             dl_knowledge::ProveAssignments {
                 x: &self.0,
                 A: &pk.get_point(),
-                B: &base,
+                G: &base,
             }
         );
         proof
@@ -351,7 +348,7 @@ impl SecretKey {
             dl_knowledge::ProveAssignments {
                 x: &self.0,
                 A: &(ciphertext.points.1 - message),
-                B: &ciphertext.points.0,
+                G: &ciphertext.points.0,
             }
         );
         proof
