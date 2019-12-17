@@ -6,7 +6,8 @@ extern crate elgamal_ristretto;
 extern crate rand;
 extern crate curve25519_dalek;
 
-use elgamal_ristretto::{PublicKey, SecretKey, };
+use elgamal_ristretto::public::{PublicKey, };
+use elgamal_ristretto::private::{SecretKey, };
 use rand_core::OsRng;
 use curve25519_dalek::ristretto::RistrettoPoint;
 
