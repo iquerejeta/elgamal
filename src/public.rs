@@ -178,12 +178,14 @@ impl PublicKey {
     /// ```
     pub fn verify_correct_decryption(self, proof: CompactProof, ciphertext: Ciphertext, plaintext: RistrettoPoint) -> bool {
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
-        dl_knowledge::verify_compact(
+        dleq::verify_compact(
             &proof,
             &mut transcript,
-            dl_knowledge::VerifyAssignments {
+            dleq::VerifyAssignments {
                 A: &(ciphertext.points.1 - plaintext).compress(),
-                G: &ciphertext.points.0.compress(),
+                B: &ciphertext.points.0.compress(),
+                H: &self.get_point().compress(),
+                G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
         ).is_ok()
     }

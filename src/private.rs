@@ -77,13 +77,18 @@ impl SecretKey {
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
     pub fn prove_correct_decryption(&self, ciphertext: Ciphertext, message: RistrettoPoint) -> CompactProof {
+        let base = RISTRETTO_BASEPOINT_POINT;
+        let pk = PublicKey::from(self);
+
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
-        let (proof, _) = dl_knowledge::prove_compact(
+        let (proof, _) = dleq::prove_compact(
             &mut transcript,
-            dl_knowledge::ProveAssignments {
+            dleq::ProveAssignments {
                 x: &self.0,
                 A: &(ciphertext.points.1 - message),
-                G: &ciphertext.points.0,
+                B: &ciphertext.points.0,
+                H: &pk.get_point(),
+                G: &base,
             }
         );
         proof

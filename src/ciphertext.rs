@@ -22,6 +22,31 @@ impl Ciphertext {
     }
 
     /// Randomize a ciphertext's plaintext and prove correctness.
+    ///
+    /// #Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand_core::OsRng;
+    /// use elgamal_ristretto::public::{PublicKey, };
+    /// use elgamal_ristretto::private::{SecretKey, };
+    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    ///
+    /// # fn main() {
+    ///    let mut csprng = OsRng;
+    ///    let sk = SecretKey::new(&mut csprng);
+    ///    let pk = PublicKey::from(&sk);
+    ///
+    ///    let plaintext = RistrettoPoint::random(&mut csprng);
+    ///    // Encrypt the ciphertext
+    ///    let ciphertext = pk.encrypt(plaintext);
+    ///    // Randomize and prove correct randomization
+    ///    let (randomized_ciphertext, proof) = ciphertext.randomize_plaintext_and_prove();
+    ///
+    ///    assert!(randomized_ciphertext.verify_correct_randomization(ciphertext, proof));
+    /// # }
+    /// ```
     pub fn randomize_plaintext_and_prove(self) -> (Ciphertext, CompactProof) {
         let randomizer = Scalar::random(&mut OsRng);
 
