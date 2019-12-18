@@ -7,8 +7,8 @@ The ElGamal cryptosystem is defined by three algorithms,
 \\(\texttt{KeyGen}, \texttt{Encrypt} \text{ and }\texttt{Decrypt}\\). The key generation algorithm 
 \\(\textt{KeyGen}(G, p)\\) outputs a public-private key-pair \\(pk = sk \cdot G\\) for \\(sk \leftarrow\mathbb{Z}_p\\). 
 The encryption function \\(\texttt{Encrypt}(pk, M)\\) takes as input a public key \\(pk\\) and a message \\(M \in G\\) 
-and returns a ciphertext \\(c = (c_1, c_2) = (r G, M \cdot r pk)\\) for \\(r \leftarrow \mathbb{Z}_p\\). The 
-decryption algorithm \\(\texttt{Decrypt}(sk, c)\\) returns the message \\(M = c_2 - sk c_1\\).
+and returns a ciphertext \\(C = (C_1, C_2) = (r G, M + r pk)\\) for \\(r \leftarrow \mathbb{Z}_p\\). The 
+decryption algorithm \\(\texttt{Decrypt}(sk, C)\\) returns the message \\(M = C_2 - sk C_1\\).
 
 Note that the plaintext space is the group \\(G\\), and hence the plaintexts must be encoded as elliptic curve points. 
 To exploit the additive homomorphic property of ElGamal encryption over the integers modulo \\(p\\), we encode the 
@@ -22,8 +22,8 @@ homomorphic property when encrypting two plaintexts, \\(m_1, m_2 \in\mathbb{Z}_p
 
 \\[ 
 \begin{align}
-    \texttt{Encrypt}(pk, m_1)\oplus\texttt{Encrypt}(pk, m_2)& = (r_1 G, m_1 G \cdot r_1 pk)\oplus (r_1 G, m_2 G \cdot r_1 pk) \\\\
-    & = ((r_1 + r_2) G, (m_1 + m_2) G \cdot (r_1 + r_2) pk) \\\\
+    \texttt{Encrypt}(pk, m_1)\oplus\texttt{Encrypt}(pk, m_2)& = (r_1 G, m_1 G + r_1 pk)\oplus (r_1 G, m_2 G + r_1 pk) \\\\
+    & = ((r_1 + r_2) G, (m_1 + m_2) G + (r_1 + r_2) pk) \\\\
     & = \texttt{Encrypt}(pk, m_1 + m_2) 
 \end{align}    
 \\]
@@ -32,7 +32,7 @@ Note, however, that when encoding integers using this encoding and exploiting th
 decryption procedure requires the discrete logarithm calculation to extract the message: 
 
 \\[
-\texttt{Decrypt}(sk, (r_1 G, m_1 G \cdot r_1 pk)) = m_1 G
+\texttt{Decrypt}(sk, (r_1 G, m_1 G + r_1 pk)) = m_1 G
 \\]
 
 Hence, in order to successfully use this encryption scheme as defined above, the plaintext space needs to be small, 
