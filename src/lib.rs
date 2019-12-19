@@ -234,12 +234,14 @@ impl PublicKey {
     /// ```
     pub fn verify_correct_decryption(self, proof: CompactProof, ciphertext: Ciphertext, plaintext: RistrettoPoint) -> bool {
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
-        dl_knowledge::verify_compact(
+        dleq::verify_compact(
             &proof,
             &mut transcript,
-            dl_knowledge::VerifyAssignments {
+            dleq::VerifyAssignments {
                 A: &(ciphertext.points.1 - plaintext).compress(),
-                G: &ciphertext.points.0.compress(),
+                B: &ciphertext.points.0.compress(),
+                H: &self.get_point().compress(),
+                G: &RISTRETTO_BASEPOINT_COMPRESSED
             },
         ).is_ok()
     }
@@ -341,13 +343,16 @@ impl SecretKey {
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
     pub fn prove_correct_decryption(&self, ciphertext: Ciphertext, message: RistrettoPoint) -> CompactProof {
+        let pk = PublicKey::from(self);
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
-        let (proof, _) = dl_knowledge::prove_compact(
+        let (proof, _) = dleq::prove_compact(
             &mut transcript,
-            dl_knowledge::ProveAssignments {
+            dleq::ProveAssignments {
                 x: &self.0,
                 A: &(ciphertext.points.1 - message),
-                G: &ciphertext.points.0,
+                B: &ciphertext.points.0,
+                H: &pk.get_point(),
+                G: &RISTRETTO_BASEPOINT_POINT,
             }
         );
         proof
