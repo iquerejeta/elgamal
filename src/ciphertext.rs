@@ -2,9 +2,6 @@ use core::ops::{Add, Div, Mul, Sub};
 use curve25519_dalek::ristretto::{RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
-use rand_core::{OsRng, };
-
-use zkp::{Transcript, CompactProof, };
 
 use crate::public::*;
 
@@ -19,75 +16,6 @@ pub struct Ciphertext {
 impl Ciphertext {
     pub fn get_points(self) -> (RistrettoPoint, RistrettoPoint) {
         return (self.points.0, self.points.1);
-    }
-
-    /// Randomize a ciphertext's plaintext and prove correctness.
-    ///
-    /// #Example
-    /// ```
-    /// extern crate rand;
-    /// extern crate curve25519_dalek;
-    /// extern crate elgamal_ristretto;
-    /// use rand_core::OsRng;
-    /// use elgamal_ristretto::public::{PublicKey, };
-    /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::RistrettoPoint;
-    ///
-    /// # fn main() {
-    ///    let mut csprng = OsRng;
-    ///    let sk = SecretKey::new(&mut csprng);
-    ///    let pk = PublicKey::from(&sk);
-    ///
-    ///    let plaintext = RistrettoPoint::random(&mut csprng);
-    ///    // Encrypt the ciphertext
-    ///    let ciphertext = pk.encrypt(plaintext);
-    ///    // Randomize and prove correct randomization
-    ///    let (randomized_ciphertext, proof) = ciphertext.randomize_plaintext_and_prove();
-    ///
-    ///    assert!(randomized_ciphertext.verify_correct_randomization(ciphertext, proof));
-    /// # }
-    /// ```
-    pub fn randomize_plaintext_and_prove(self) -> (Ciphertext, CompactProof) {
-        let randomizer = Scalar::random(&mut OsRng);
-
-        let randomized_ciphertext = Ciphertext{
-            pk: self.pk,
-            points: (self.points.0 * randomizer, self.points.1 * randomizer)
-        };
-
-        let mut transcript = Transcript::new(b"CorrectRandomization");
-        let (proof, _) = dleq::prove_compact(
-            &mut transcript,
-            dleq::ProveAssignments {
-                x: &randomizer,
-                A: &randomized_ciphertext.points.0,
-                B: &self.points.0,
-                H: &randomized_ciphertext.points.1,
-                G: &self.points.1,
-            },
-        );
-
-        (randomized_ciphertext, proof)
-    }
-
-    /// Verify proof of correct randomization
-    pub fn verify_correct_randomization(
-        self,
-        initial_ciphertext: Ciphertext,
-        proof: CompactProof
-    ) -> bool {
-        let mut transcript = Transcript::new(b"CorrectRandomization");
-        dleq::verify_compact(
-            &proof,
-            &mut transcript,
-            dleq::VerifyAssignments {
-                A: &self.points.0.compress(),
-                B: &initial_ciphertext.points.0.compress(),
-                H: &self.points.1.compress(),
-                G: &initial_ciphertext.points.1.compress(),
-            },
-        ).is_ok()
-        // verify_dlog_knowledge_proof(self.pk.get_point().compress(), value.compress(), proof)
     }
 }
 
@@ -157,3 +85,99 @@ impl<'a, 'b> Div<&'b Scalar> for &'a Ciphertext {
 }
 
 define_div_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+    use crate::private::SecretKey;
+    use rand_core::{OsRng, };
+
+    #[test]
+    fn test_homomorphic_addition() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt1 = RistrettoPoint::random(&mut csprng);
+        let ptxt2 = RistrettoPoint::random(&mut csprng);
+
+        let ctxt1 = pk.encrypt(ptxt1);
+        let ctxt2 = pk.encrypt(ptxt2);
+
+        let encrypted_addition = ctxt1 + ctxt2;
+        let decrypted_addition = sk.decrypt(encrypted_addition);
+
+        assert_eq!(ptxt1 + ptxt2, decrypted_addition);
+    }
+
+    #[test]
+    fn test_homomorphic_subtraction() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt1 = RistrettoPoint::random(&mut csprng);
+        let ptxt2 = RistrettoPoint::random(&mut csprng);
+
+        let ctxt1 = pk.encrypt(ptxt1);
+        let ctxt2 = pk.encrypt(ptxt2);
+
+        let encrypted_addition = ctxt1 - ctxt2;
+        let decrypted_addition = sk.decrypt(encrypted_addition);
+
+        assert_eq!(ptxt1 - ptxt2, decrypted_addition);
+    }
+
+    #[test]
+    fn test_multiplication_by_scalar() {
+        // generates public private pair
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let pltxt: RistrettoPoint = RistrettoPoint::random(&mut csprng);
+        let enc_pltxt = pk.encrypt(pltxt);
+
+        let mult_factor: Scalar = Scalar::random(&mut csprng);
+        let mult_pltxt = pltxt * mult_factor;
+        let mult_ctxt = enc_pltxt * mult_factor;
+        let mult_dec_pltxt = sk.decrypt(mult_ctxt);
+
+        assert_eq!(mult_dec_pltxt, mult_pltxt);
+    }
+
+    #[test]
+    fn test_division_by_scalar() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let div_factor: Scalar = Scalar::random(&mut csprng);
+        let pltxt: RistrettoPoint = div_factor * RISTRETTO_BASEPOINT_POINT;
+        let enc_pltxt = pk.encrypt(pltxt);
+
+        let div_ctxt = enc_pltxt / div_factor;
+        let div_dec_pltxt = sk.decrypt(div_ctxt);
+
+        assert_eq!(div_dec_pltxt, RISTRETTO_BASEPOINT_POINT);
+    }
+
+    #[test]
+    fn test_serde_ciphertext() {
+        use bincode;
+
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext: RistrettoPoint = RistrettoPoint::random(&mut csprng);
+        let enc_plaintext = pk.encrypt(plaintext);
+
+        let encoded = bincode::serialize(&enc_plaintext).unwrap();
+        let decoded: Ciphertext = bincode::deserialize(&encoded).unwrap();
+
+        assert_eq!(enc_plaintext.pk, decoded.pk);
+        assert_eq!(enc_plaintext.points, decoded.points);
+    }
+}

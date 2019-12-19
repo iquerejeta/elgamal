@@ -34,10 +34,6 @@ indeed the correct decryption of \\(C\\), the prover needs to compute the follow
 \textttt{ZKP-DLEQ}\{(sk), (C_1, (C_2 - M), Q), (G): Q = sk \cdot G \wedge (C_2 - M) = sk \cdot C_1\}
 \\]
 
-Proof of correct Randomization
-==============================
-
-TODO: probably this proof should not go in this crate 
 
 Proof of knowledge of secret key
 ================================

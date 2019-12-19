@@ -213,3 +213,63 @@ impl PartialEq for PublicKey {
         self.0 == other.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use curve25519_dalek::ristretto::CompressedRistretto;
+    use crate::private::SecretKey;
+
+    #[test]
+    fn test_encryption() {
+        let sk = SecretKey::from(Scalar::from_bytes_mod_order(
+            [
+                0x90, 0x76, 0x33, 0xfe, 0x1c, 0x4b, 0x66, 0xa4,
+                0xa2, 0x8d, 0x2d, 0xd7, 0x67, 0x83, 0x86, 0xc3,
+                0x53, 0xd0, 0xde, 0x54, 0x55, 0xd4, 0xfc, 0x9d,
+                0xe8, 0xef, 0x7a, 0xc3, 0x1f, 0x35, 0xbb, 0x05,
+            ]
+        ));
+
+        let pk = PublicKey::from(&sk);
+
+        let ptxt = CompressedRistretto(
+            [
+                226, 242, 174, 10, 106, 188, 78, 113, 168, 132,
+                169, 97, 197, 0, 81, 95, 88, 227, 11, 106, 165,
+                130, 221, 141, 182, 166, 89, 69, 224, 141, 45,
+                118
+            ]
+        ).decompress().unwrap();
+
+        let ctxt = pk.encrypt(ptxt);
+        assert_eq!(ptxt, sk.decrypt(ctxt));
+    }
+
+    #[test]
+    fn test_byte_conversion() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let pk_byte = pk.to_bytes();
+        let pk_from_bytes = PublicKey::from_bytes(&pk_byte);
+
+        assert_eq!(pk, pk_from_bytes);
+    }
+
+
+    #[test]
+    fn test_serde_pubkey() {
+        use bincode;
+
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let encoded = bincode::serialize(&pk).unwrap();
+        let decoded: PublicKey = bincode::deserialize(&encoded).unwrap();
+
+        assert_eq!(pk, decoded);
+    }
+}

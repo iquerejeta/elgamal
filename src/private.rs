@@ -103,6 +103,12 @@ impl<'a, 'b> Mul<&'b Scalar> for &'a SecretKey {
     }
 }
 
+impl From<Scalar> for SecretKey {
+    fn from(secret: Scalar) -> SecretKey {
+        SecretKey(secret)
+    }
+}
+
 impl<'a> From<&'a SecretKey> for PublicKey {
     /// Given a secret key, compute its corresponding Public key
     fn from(secret: &'a SecretKey) -> PublicKey {
@@ -119,4 +125,83 @@ fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
     s[31] &= 127;
     s[31] |= 64;
     Scalar::from_bits(s)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_core::{OsRng, };
+    #[test]
+    fn create_and_verify_sk_knowledge() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let proof = sk.prove_knowledge();
+        assert!(pk.verify_proof_knowledge(proof));
+    }
+
+    #[test]
+    fn create_and_verify_fake_sk_knowledge() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let fake_pk = PublicKey::from(RistrettoPoint::random(&mut csprng));
+
+        let proof = sk.prove_knowledge();
+        assert!(!fake_pk.verify_proof_knowledge(proof));
+    }
+
+    #[test]
+    fn prove_correct_decryption() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(plaintext);
+
+        let decryption = sk.decrypt(ciphertext);
+        let proof = sk.prove_correct_decryption(ciphertext, decryption);
+
+        assert!(pk.verify_correct_decryption(proof, ciphertext, decryption));
+    }
+
+    #[test]
+    fn prove_false_decryption() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(plaintext);
+
+        let fake_decryption = RistrettoPoint::random(&mut csprng);
+        let proof = sk.prove_correct_decryption(ciphertext, fake_decryption);
+
+        assert!(!pk.verify_correct_decryption(proof, ciphertext, fake_decryption));
+    }
+
+    #[test]
+    fn test_signature() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let msg = RistrettoPoint::random(&mut csprng);
+        let signature = sk.sign(msg);
+        assert!(pk.verify_signature(&msg, signature));
+    }
+
+    #[test]
+    fn test_signature_failure() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let msg = RistrettoPoint::random(&mut csprng);
+        let msg_unsigned = RistrettoPoint::random(&mut csprng);
+        let signature = sk.sign(msg);
+
+        assert!(!pk.verify_signature(&msg_unsigned, signature));
+    }
 }

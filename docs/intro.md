@@ -7,9 +7,8 @@ These notes explain how the ElGamal encryption works, where we'll cover the foll
 
 * [ElGamal cryptosystem](::notes::elgamal_cryptosystem)
 * [Zero Knowledge Proofs](::notes::zkps)
-    * [Proof of Correct Encryption](::notes::proof_encryption)
-    * [Proof of Correct Decryption](::notes::proof_decryption)
-    * [Proof of Knowledge of Secret Key](::notes::proof_knowledge_sk)
+    * Proof of correct decryption
+    * Proof ok knowledge of secret key
     
 Notation
 ========
