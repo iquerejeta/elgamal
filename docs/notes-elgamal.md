@@ -36,6 +36,6 @@ decryption procedure requires the discrete logarithm calculation to extract the 
 \\]
 
 Hence, in order to successfully use this encryption scheme as defined above, the plaintext space needs to be small, 
-e.g. the number of votes received by a candidate in an election or wallets amounts in a crypto currency. 
+e.g. the number of votes received by a candidate in an election or wallet balances in a crypto currency. 
 
 **Important:** The current state of the crate does not support encryption/decryption of byte arrays. 
