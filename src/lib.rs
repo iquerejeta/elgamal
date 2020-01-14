@@ -401,6 +401,58 @@ impl Ciphertext {
     }
 }
 
+impl<'a, 'b> Add<&'b Ciphertext> for &'a RistrettoPoint {
+    type Output = Ciphertext;
+
+    fn add(self, other: &'b Ciphertext) -> Ciphertext {
+        Ciphertext {
+            pk: other.pk,
+            points: (other.points.0, self + &other.points.1),
+        }
+    }
+}
+
+define_add_variants!(LHS = RistrettoPoint, RHS = Ciphertext, Output = Ciphertext);
+
+impl<'a, 'b> Add<&'b RistrettoPoint> for &'a Ciphertext {
+    type Output = Ciphertext;
+
+    fn add(self, other: &'b RistrettoPoint) -> Ciphertext {
+        Ciphertext {
+            pk: self.pk,
+            points: (self.points.0, &self.points.1 + other),
+        }
+    }
+}
+
+define_add_variants!(LHS = Ciphertext, RHS = RistrettoPoint, Output = Ciphertext);
+
+impl<'a, 'b> Sub<&'b Ciphertext> for &'a RistrettoPoint {
+    type Output = Ciphertext;
+
+    fn sub(self, other: &'b Ciphertext) -> Ciphertext {
+        Ciphertext {
+            pk: other.pk,
+            points: (-other.points.0, self - &other.points.1),
+        }
+    }
+}
+
+define_sub_variants!(LHS = RistrettoPoint, RHS = Ciphertext, Output = Ciphertext);
+
+impl<'a, 'b> Sub<&'b RistrettoPoint> for &'a Ciphertext {
+    type Output = Ciphertext;
+
+    fn sub(self, other: &'b RistrettoPoint) -> Ciphertext {
+        Ciphertext {
+            pk: self.pk,
+            points: (self.points.0, &self.points.1 - other),
+        }
+    }
+}
+
+define_sub_variants!(LHS = Ciphertext, RHS = RistrettoPoint, Output = Ciphertext);
+
 impl<'a, 'b> Add<&'b Ciphertext> for &'a Ciphertext {
     type Output = Ciphertext;
 
@@ -705,5 +757,33 @@ mod tests {
         let proof = sk.prove_correct_decryption(ciphertext, fake_decryption);
 
         assert!(!pk.verify_correct_decryption(proof, ciphertext, fake_decryption));
+    }
+
+    #[test]
+    fn test_add_of_ciphertext_and_plaintext() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(plaintext);
+        let plaintext2 = RistrettoPoint::random(&mut csprng);
+
+        assert!(sk.decrypt(plaintext2 + ciphertext) == plaintext + plaintext2);
+        assert!(sk.decrypt(ciphertext + plaintext2) == plaintext + plaintext2);
+    }
+
+    #[test]
+    fn test_sub_of_ciphertext_and_plaintext() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(plaintext);
+        let plaintext2 = RistrettoPoint::random(&mut csprng);
+
+        assert!(sk.decrypt(plaintext2 - ciphertext) == plaintext2 - plaintext);
+        assert!(sk.decrypt(ciphertext - plaintext2) == plaintext - plaintext2);
     }
 }
