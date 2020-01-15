@@ -3,16 +3,16 @@ pub mod macros;
 
 use clear_on_drop::clear::Clear;
 use core::ops::{Add, Div, Mul, Sub};
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_COMPRESSED};
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{RngCore, CryptoRng, OsRng, };
+use rand_core::{CryptoRng, OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
 #[macro_use]
 extern crate zkp;
-use zkp::{Transcript, CompactProof, };
+use zkp::{CompactProof, Transcript};
 
 define_proof! {dl_knowledge, "DLKnowledge Proof", (x), (A), (G) : A = (x * G)}
 define_proof! {dleq, "DLEQ Proof", (x), (A, B, H), (G) : A = (x * B), H = (x * G)}
@@ -98,10 +98,7 @@ impl PublicKey {
     ///        assert!(enc_plaintext.verify_correct_encryption(&plaintext, proof));
     /// # }
     /// ```
-    pub fn encrypt_and_prove(
-        self,
-        message: RistrettoPoint,
-    ) -> (Ciphertext, CompactProof) {
+    pub fn encrypt_and_prove(self, message: RistrettoPoint) -> (Ciphertext, CompactProof) {
         let mut csprng: OsRng = OsRng;
         let mut random: Scalar = Scalar::random(&mut csprng);
 
@@ -117,17 +114,19 @@ impl PublicKey {
                 B: &self.get_point(),
                 H: &random_generator,
                 G: &RISTRETTO_BASEPOINT_POINT,
-            }
+            },
         );
 
         // let proof = prove_dlog_knowledge(random, self.get_point(), encrypted_plaintext - message);
 
         random.clear();
-        (Ciphertext {
-            pk: self,
-            points: (random_generator, encrypted_plaintext),
-        },
-        proof)
+        (
+            Ciphertext {
+                pk: self,
+                points: (random_generator, encrypted_plaintext),
+            },
+            proof,
+        )
     }
 
     /// Get the public key as a RistrettoPoint
@@ -162,7 +161,11 @@ impl PublicKey {
     ///       assert!(!pk.verify_signature(&RistrettoPoint::random(&mut csprng), signature))
     /// # }
     /// ```
-    pub fn verify_signature(self, message: &RistrettoPoint, signature: (Scalar, RistrettoPoint)) -> bool {
+    pub fn verify_signature(
+        self,
+        message: &RistrettoPoint,
+        signature: (Scalar, RistrettoPoint),
+    ) -> bool {
         let verification_hash = Scalar::from_hash(
             Sha512::new()
                 .chain(signature.1.compress().to_bytes())
@@ -204,7 +207,8 @@ impl PublicKey {
                 A: &self.0.compress(),
                 G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
-        ).is_ok()
+        )
+        .is_ok()
     }
 
     /// Verify correct decryption
@@ -232,7 +236,12 @@ impl PublicKey {
     ///    assert!(pk.verify_correct_decryption(proof, ciphertext, decryption));
     /// # }
     /// ```
-    pub fn verify_correct_decryption(self, proof: CompactProof, ciphertext: Ciphertext, plaintext: RistrettoPoint) -> bool {
+    pub fn verify_correct_decryption(
+        self,
+        proof: CompactProof,
+        ciphertext: Ciphertext,
+        plaintext: RistrettoPoint,
+    ) -> bool {
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         dleq::verify_compact(
             &proof,
@@ -241,9 +250,10 @@ impl PublicKey {
                 A: &(ciphertext.points.1 - plaintext).compress(),
                 B: &ciphertext.points.0.compress(),
                 H: &self.get_point().compress(),
-                G: &RISTRETTO_BASEPOINT_COMPRESSED
+                G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
-        ).is_ok()
+        )
+        .is_ok()
     }
 
     /// Convert to bytes
@@ -278,7 +288,7 @@ impl PartialEq for PublicKey {
 }
 
 /// Secret key is a scalar forming the public Key.
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SecretKey(Scalar);
 
 /// Overwrite secret key material with null bytes.
@@ -288,12 +298,18 @@ impl Drop for SecretKey {
     }
 }
 
+impl PartialEq for SecretKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl SecretKey {
     /// Create new SecretKey
     pub fn new<T: RngCore + CryptoRng>(csprng: &mut T) -> Self {
         let mut bytes = [0u8; 32];
         csprng.fill_bytes(&mut bytes);
-        SecretKey(clamp_scalar(bytes))
+        SecretKey(clamp_scalar(bytes).reduce())
     }
 
     /// Decrypt ciphertexts
@@ -323,6 +339,11 @@ impl SecretKey {
         (signature_scalar, signature_point)
     }
 
+    /// Convert to bytes
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0.to_bytes()
+    }
+
     /// Proof Knowledge of secret key
     pub fn prove_knowledge(&self) -> CompactProof {
         let base = RISTRETTO_BASEPOINT_POINT;
@@ -335,14 +356,18 @@ impl SecretKey {
                 x: &self.0,
                 A: &pk.get_point(),
                 G: &base,
-            }
+            },
         );
         proof
     }
 
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
-    pub fn prove_correct_decryption(&self, ciphertext: Ciphertext, message: RistrettoPoint) -> CompactProof {
+    pub fn prove_correct_decryption(
+        &self,
+        ciphertext: Ciphertext,
+        message: RistrettoPoint,
+    ) -> CompactProof {
         let pk = PublicKey::from(self);
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         let (proof, _) = dleq::prove_compact(
@@ -353,7 +378,7 @@ impl SecretKey {
                 B: &ciphertext.points.0,
                 H: &pk.get_point(),
                 G: &RISTRETTO_BASEPOINT_POINT,
-            }
+            },
         );
         proof
     }
@@ -384,7 +409,7 @@ impl Ciphertext {
     pub fn verify_correct_encryption(
         self,
         message_to_verify: &RistrettoPoint,
-        proof: CompactProof
+        proof: CompactProof,
     ) -> bool {
         let mut transcript = Transcript::new(b"CorrectEncryption");
         dleq::verify_compact(
@@ -396,7 +421,8 @@ impl Ciphertext {
                 H: &self.get_points().0.compress(),
                 G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
-        ).is_ok()
+        )
+        .is_ok()
         // verify_dlog_knowledge_proof(self.pk.get_point().compress(), value.compress(), proof)
     }
 }
@@ -612,6 +638,18 @@ mod tests {
         let decoded: PublicKey = bincode::deserialize(&encoded).unwrap();
 
         assert_eq!(pk, decoded);
+    }
+
+    #[test]
+    fn test_serde_secretkey() {
+        use bincode;
+
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+
+        let encoded = bincode::serialize(&sk).unwrap();
+        let decoded: SecretKey = bincode::deserialize(&encoded).unwrap();
+        assert_eq!(sk, decoded);
     }
 
     #[test]
