@@ -12,7 +12,7 @@ use crate::ciphertext::*;
 use crate::public::*;
 
 /// Secret key is a scalar forming the public Key.
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SecretKey(Scalar);
 
 /// Overwrite secret key material with null bytes.
@@ -22,12 +22,18 @@ impl Drop for SecretKey {
     }
 }
 
+impl PartialEq for SecretKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl SecretKey {
     /// Create new SecretKey
     pub fn new<T: RngCore + CryptoRng>(csprng: &mut T) -> Self {
         let mut bytes = [0u8; 32];
         csprng.fill_bytes(&mut bytes);
-        SecretKey(clamp_scalar(bytes))
+        SecretKey(clamp_scalar(bytes).reduce())
     }
 
     /// Decrypt ciphertexts
@@ -57,19 +63,22 @@ impl SecretKey {
         (signature_scalar, signature_point)
     }
 
+    /// Convert to bytes
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0.to_bytes()
+    }
+
     /// Proof Knowledge of secret key
     pub fn prove_knowledge(&self) -> CompactProof {
-        let base = RISTRETTO_BASEPOINT_POINT;
         let pk = PublicKey::from(self);
-
         let mut transcript = Transcript::new(b"ProveKnowledgeSK");
         let (proof, _) = dl_knowledge::prove_compact(
             &mut transcript,
             dl_knowledge::ProveAssignments {
                 x: &self.0,
                 A: &pk.get_point(),
-                G: &base,
-            }
+                G: &RISTRETTO_BASEPOINT_POINT,
+            },
         );
         proof
     }
@@ -77,9 +86,7 @@ impl SecretKey {
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
     pub fn prove_correct_decryption(&self, ciphertext: Ciphertext, message: RistrettoPoint) -> CompactProof {
-        let base = RISTRETTO_BASEPOINT_POINT;
         let pk = PublicKey::from(self);
-
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         let (proof, _) = dleq::prove_compact(
             &mut transcript,
@@ -88,7 +95,7 @@ impl SecretKey {
                 A: &(ciphertext.points.1 - message),
                 B: &ciphertext.points.0,
                 H: &pk.get_point(),
-                G: &base,
+                G: &RISTRETTO_BASEPOINT_POINT,
             }
         );
         proof
@@ -203,5 +210,17 @@ mod tests {
         let signature = sk.sign(msg);
 
         assert!(!pk.verify_signature(&msg_unsigned, signature));
+    }
+
+    #[test]
+    fn test_serde_secretkey() {
+        use bincode;
+
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+
+        let encoded = bincode::serialize(&sk).unwrap();
+        let decoded: SecretKey = bincode::deserialize(&encoded).unwrap();
+        assert_eq!(sk, decoded);
     }
 }
