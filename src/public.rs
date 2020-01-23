@@ -44,21 +44,21 @@ impl PublicKey {
     ///        let ptxt2 = RistrettoPoint::random(&mut csprng);
     ///
     ///        // Encrypt messages
-    ///        let ctxt1 = pk.encrypt(ptxt1);
-    ///        let ctxt2 = pk.encrypt(ptxt2);
+    ///        let ctxt1 = pk.encrypt(&ptxt1);
+    ///        let ctxt2 = pk.encrypt(&ptxt2);
     ///
     ///        // Add ciphertexts and check that addition is maintained in the plaintexts
     ///        let encrypted_addition = ctxt1 + ctxt2;
-    ///        let decrypted_addition = sk.decrypt(encrypted_addition);
+    ///        let decrypted_addition = sk.decrypt(&encrypted_addition);
     ///
     ///        assert_eq!(ptxt1 + ptxt2, decrypted_addition);
     ///
     ///        // Multiply by scalar and check that multiplication is maintained in the plaintext
     ///        let scalar_mult = Scalar::random(&mut csprng);
-    ///        assert_eq!(sk.decrypt(ctxt1 * scalar_mult), scalar_mult * ptxt1);
+    ///        assert_eq!(sk.decrypt(&(ctxt1 * scalar_mult)), scalar_mult * ptxt1);
     /// # }
     /// ```
-    pub fn encrypt(self, message: RistrettoPoint) -> Ciphertext {
+    pub fn encrypt(self, message: &RistrettoPoint) -> Ciphertext {
         let mut csprng: OsRng = OsRng;
         let mut random: Scalar = Scalar::random(&mut csprng);
 
@@ -96,7 +96,7 @@ impl PublicKey {
     ///
     ///       // Sign message
     ///       let msg = RistrettoPoint::random(&mut csprng);
-    ///       let signature = sk.sign(msg);
+    ///       let signature = sk.sign(&msg);
     ///       // Verify signature
     ///       assert!(pk.verify_signature(&msg, signature));
     ///
@@ -135,10 +135,10 @@ impl PublicKey {
     ///       let pk = PublicKey::from(&sk);
     ///
     ///       let proof = sk.prove_knowledge();
-    ///       assert!(pk.verify_proof_knowledge(proof));
+    ///       assert!(pk.verify_proof_knowledge(&proof));
     /// # }
     /// ```
-    pub fn verify_proof_knowledge(self, proof: CompactProof) -> bool {
+    pub fn verify_proof_knowledge(self, proof: &CompactProof) -> bool {
         let mut transcript = Transcript::new(b"ProveKnowledgeSK");
         dl_knowledge::verify_compact(
             &proof,
@@ -168,15 +168,15 @@ impl PublicKey {
     ///    let pk = PublicKey::from(&sk);
     ///
     ///    let plaintext = RistrettoPoint::random(&mut csprng);
-    ///    let ciphertext = pk.encrypt(plaintext);
+    ///    let ciphertext = pk.encrypt(&plaintext);
     ///
-    ///    let decryption = sk.decrypt(ciphertext);
-    ///    let proof = sk.prove_correct_decryption(ciphertext, decryption);
+    ///    let decryption = sk.decrypt(&ciphertext);
+    ///    let proof = sk.prove_correct_decryption(&ciphertext, &decryption);
     ///
-    ///    assert!(pk.verify_correct_decryption(proof, ciphertext, decryption));
+    ///    assert!(pk.verify_correct_decryption(&proof, &ciphertext, &decryption));
     /// # }
     /// ```
-    pub fn verify_correct_decryption(self, proof: CompactProof, ciphertext: Ciphertext, plaintext: RistrettoPoint) -> bool {
+    pub fn verify_correct_decryption(self, proof: &CompactProof, ciphertext: &Ciphertext, plaintext: &RistrettoPoint) -> bool {
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         dleq::verify_compact(
             &proof,
@@ -242,8 +242,8 @@ mod tests {
             ]
         ).decompress().unwrap();
 
-        let ctxt = pk.encrypt(ptxt);
-        assert_eq!(ptxt, sk.decrypt(ctxt));
+        let ctxt = pk.encrypt(&ptxt);
+        assert_eq!(ptxt, sk.decrypt(&ctxt));
     }
 
     #[test]

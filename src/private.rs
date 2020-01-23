@@ -38,13 +38,13 @@ impl SecretKey {
     }
 
     /// Decrypt ciphertexts
-    pub fn decrypt(&self, ciphertext: Ciphertext) -> RistrettoPoint {
+    pub fn decrypt(&self, ciphertext: &Ciphertext) -> RistrettoPoint {
         let (point1, point2) = ciphertext.get_points();
         point2 - point1 * self.0
     }
 
     /// Sign a message using EdDSA algorithm.
-    pub fn sign(&self, message: RistrettoPoint) -> (Scalar, RistrettoPoint) {
+    pub fn sign(&self, message: &RistrettoPoint) -> (Scalar, RistrettoPoint) {
         let pk = PublicKey::from(self);
         let random_signature = Scalar::from_hash(
             Sha512::new()
@@ -86,7 +86,7 @@ impl SecretKey {
 
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
-    pub fn prove_correct_decryption(&self, ciphertext: Ciphertext, message: RistrettoPoint) -> CompactProof {
+    pub fn prove_correct_decryption(&self, ciphertext: &Ciphertext, message: &RistrettoPoint) -> CompactProof {
         let pk = PublicKey::from(self);
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         let (proof, _) = dleq::prove_compact(
@@ -146,7 +146,7 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let proof = sk.prove_knowledge();
-        assert!(pk.verify_proof_knowledge(proof));
+        assert!(pk.verify_proof_knowledge(&proof));
     }
 
     #[test]
@@ -156,7 +156,7 @@ mod tests {
         let fake_pk = PublicKey::from(RistrettoPoint::random(&mut csprng));
 
         let proof = sk.prove_knowledge();
-        assert!(!fake_pk.verify_proof_knowledge(proof));
+        assert!(!fake_pk.verify_proof_knowledge(&proof));
     }
 
     #[test]
@@ -166,12 +166,12 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let plaintext = RistrettoPoint::random(&mut csprng);
-        let ciphertext = pk.encrypt(plaintext);
+        let ciphertext = pk.encrypt(&plaintext);
 
-        let decryption = sk.decrypt(ciphertext);
-        let proof = sk.prove_correct_decryption(ciphertext, decryption);
+        let decryption = sk.decrypt(&ciphertext);
+        let proof = sk.prove_correct_decryption(&ciphertext, &decryption);
 
-        assert!(pk.verify_correct_decryption(proof, ciphertext, decryption));
+        assert!(pk.verify_correct_decryption(&proof, &ciphertext, &decryption));
     }
 
     #[test]
@@ -181,12 +181,12 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let plaintext = RistrettoPoint::random(&mut csprng);
-        let ciphertext = pk.encrypt(plaintext);
+        let ciphertext = pk.encrypt(&plaintext);
 
         let fake_decryption = RistrettoPoint::random(&mut csprng);
-        let proof = sk.prove_correct_decryption(ciphertext, fake_decryption);
+        let proof = sk.prove_correct_decryption(&ciphertext, &fake_decryption);
 
-        assert!(!pk.verify_correct_decryption(proof, ciphertext, fake_decryption));
+        assert!(!pk.verify_correct_decryption(&proof, &ciphertext, &fake_decryption));
     }
 
     #[test]
@@ -196,7 +196,7 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let msg = RistrettoPoint::random(&mut csprng);
-        let signature = sk.sign(msg);
+        let signature = sk.sign(&msg);
         assert!(pk.verify_signature(&msg, signature));
     }
 
@@ -208,7 +208,7 @@ mod tests {
 
         let msg = RistrettoPoint::random(&mut csprng);
         let msg_unsigned = RistrettoPoint::random(&mut csprng);
-        let signature = sk.sign(msg);
+        let signature = sk.sign(&msg);
 
         assert!(!pk.verify_signature(&msg_unsigned, signature));
     }

@@ -154,11 +154,11 @@ mod tests {
         let ptxt1 = RistrettoPoint::random(&mut csprng);
         let ptxt2 = RistrettoPoint::random(&mut csprng);
 
-        let ctxt1 = pk.encrypt(ptxt1);
-        let ctxt2 = pk.encrypt(ptxt2);
+        let ctxt1 = pk.encrypt(&ptxt1);
+        let ctxt2 = pk.encrypt(&ptxt2);
 
         let encrypted_addition = ctxt1 + ctxt2;
-        let decrypted_addition = sk.decrypt(encrypted_addition);
+        let decrypted_addition = sk.decrypt(&encrypted_addition);
 
         assert_eq!(ptxt1 + ptxt2, decrypted_addition);
     }
@@ -172,11 +172,11 @@ mod tests {
         let ptxt1 = RistrettoPoint::random(&mut csprng);
         let ptxt2 = RistrettoPoint::random(&mut csprng);
 
-        let ctxt1 = pk.encrypt(ptxt1);
-        let ctxt2 = pk.encrypt(ptxt2);
+        let ctxt1 = pk.encrypt(&ptxt1);
+        let ctxt2 = pk.encrypt(&ptxt2);
 
         let encrypted_addition = ctxt1 - ctxt2;
-        let decrypted_addition = sk.decrypt(encrypted_addition);
+        let decrypted_addition = sk.decrypt(&encrypted_addition);
 
         assert_eq!(ptxt1 - ptxt2, decrypted_addition);
     }
@@ -188,11 +188,11 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let plaintext = RistrettoPoint::random(&mut csprng);
-        let ciphertext = pk.encrypt(plaintext);
+        let ciphertext = pk.encrypt(&plaintext);
         let plaintext2 = RistrettoPoint::random(&mut csprng);
 
-        assert!(sk.decrypt(plaintext2 + ciphertext) == plaintext + plaintext2);
-        assert!(sk.decrypt(ciphertext + plaintext2) == plaintext + plaintext2);
+        assert!(sk.decrypt(&(plaintext2 + ciphertext)) == plaintext + plaintext2);
+        assert!(sk.decrypt(&(ciphertext + plaintext2)) == plaintext + plaintext2);
     }
 
     #[test]
@@ -202,11 +202,11 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let plaintext = RistrettoPoint::random(&mut csprng);
-        let ciphertext = pk.encrypt(plaintext);
+        let ciphertext = pk.encrypt(&plaintext);
         let plaintext2 = RistrettoPoint::random(&mut csprng);
 
-        assert!(sk.decrypt(plaintext2 - ciphertext) == plaintext2 - plaintext);
-        assert!(sk.decrypt(ciphertext - plaintext2) == plaintext - plaintext2);
+        assert!(sk.decrypt(&(plaintext2 - ciphertext)) == plaintext2 - plaintext);
+        assert!(sk.decrypt(&(ciphertext - plaintext2)) == plaintext - plaintext2);
     }
 
     #[test]
@@ -217,12 +217,12 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let pltxt: RistrettoPoint = RistrettoPoint::random(&mut csprng);
-        let enc_pltxt = pk.encrypt(pltxt);
+        let enc_pltxt = pk.encrypt(&pltxt);
 
         let mult_factor: Scalar = Scalar::random(&mut csprng);
         let mult_pltxt = pltxt * mult_factor;
         let mult_ctxt = enc_pltxt * mult_factor;
-        let mult_dec_pltxt = sk.decrypt(mult_ctxt);
+        let mult_dec_pltxt = sk.decrypt(&mult_ctxt);
 
         assert_eq!(mult_dec_pltxt, mult_pltxt);
     }
@@ -235,10 +235,10 @@ mod tests {
 
         let div_factor: Scalar = Scalar::random(&mut csprng);
         let pltxt: RistrettoPoint = div_factor * RISTRETTO_BASEPOINT_POINT;
-        let enc_pltxt = pk.encrypt(pltxt);
+        let enc_pltxt = pk.encrypt(&pltxt);
 
         let div_ctxt = enc_pltxt / div_factor;
-        let div_dec_pltxt = sk.decrypt(div_ctxt);
+        let div_dec_pltxt = sk.decrypt(&div_ctxt);
 
         assert_eq!(div_dec_pltxt, RISTRETTO_BASEPOINT_POINT);
     }
@@ -252,7 +252,7 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let plaintext: RistrettoPoint = RistrettoPoint::random(&mut csprng);
-        let enc_plaintext = pk.encrypt(plaintext);
+        let enc_plaintext = pk.encrypt(&plaintext);
 
         let encoded = bincode::serialize(&enc_plaintext).unwrap();
         let decoded: Ciphertext = bincode::deserialize(&encoded).unwrap();
