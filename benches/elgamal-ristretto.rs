@@ -7,7 +7,8 @@ extern crate elgamal_ristretto;
 extern crate rand;
 
 use curve25519_dalek::ristretto::RistrettoPoint;
-use elgamal_ristretto::{PublicKey, SecretKey};
+use elgamal_ristretto::private::SecretKey;
+use elgamal_ristretto::public::PublicKey;
 use rand_core::OsRng;
 
 fn encrypt_ciphertext(c: &mut Criterion) {
