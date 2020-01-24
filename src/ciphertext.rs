@@ -4,6 +4,9 @@ use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 
 use crate::public::*;
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
+use rand_core::OsRng;
+use zkp::{CompactProof, Transcript};
 
 define_proof! {dleq, "DLEQ Proof", (x), (A, B, H), (G) : A = (x * B), H = (x * G)}
 
@@ -16,6 +19,47 @@ pub struct Ciphertext {
 impl Ciphertext {
     pub fn get_points(self) -> (RistrettoPoint, RistrettoPoint) {
         return (self.points.0, self.points.1);
+    }
+
+    pub fn randomise_ciphertext_and_prove(self) -> (Ciphertext, CompactProof) {
+        let randomiser = Scalar::random(&mut OsRng);
+        let randomised_ciphertext = Ciphertext {
+            pk: self.pk,
+            points: (
+                self.points.0 + randomiser * RISTRETTO_BASEPOINT_POINT,
+                self.points.1 + randomiser * self.pk.get_point(),
+            ),
+        };
+
+        let mut transcript = Transcript::new(b"CorrectRandomisation");
+        let (proof, _) = dleq::prove_compact(
+            &mut transcript,
+            dleq::ProveAssignments {
+                x: &randomiser,
+                A: &(&randomised_ciphertext.points.0 - &self.points.0),
+                B: &RISTRETTO_BASEPOINT_POINT,
+                H: &(&randomised_ciphertext.points.1 - &self.points.1),
+                G: &self.pk.get_point(),
+            },
+        );
+
+        (randomised_ciphertext, proof)
+    }
+
+    pub fn verify_randomisation(self, plain_ciphertext: &Ciphertext, proof: &CompactProof) -> bool {
+        let mut transcript = Transcript::new(b"CorrectRandomisation");
+
+        dleq::verify_compact(
+            &proof,
+            &mut transcript,
+            dleq::VerifyAssignments {
+                A: &(&self.points.0 - &plain_ciphertext.points.0).compress(),
+                B: &RISTRETTO_BASEPOINT_COMPRESSED,
+                H: &(&self.points.1 - &plain_ciphertext.points.1).compress(),
+                G: &plain_ciphertext.pk.get_point().compress(),
+            },
+        )
+        .is_ok()
     }
 }
 
@@ -143,7 +187,39 @@ mod tests {
     use super::*;
     use crate::private::SecretKey;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
-    use rand_core::OsRng;
+
+    #[test]
+    fn test_randomisation_and_proof() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt = RistrettoPoint::random(&mut csprng);
+        let ctxt = pk.encrypt(&ptxt);
+
+        // Randomise and prove
+        let (randomised_ctxt, proof) = ctxt.randomise_ciphertext_and_prove();
+
+        assert_eq!(sk.decrypt(&randomised_ctxt), ptxt);
+        assert!(randomised_ctxt.verify_randomisation(&ctxt, &proof));
+    }
+
+    #[test]
+    fn test_failed_randomisation_and_proof() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let ptxt = RistrettoPoint::random(&mut csprng);
+        let ctxt = pk.encrypt(&ptxt);
+        let ctxt_rnd = pk.encrypt(&ptxt);
+
+        // Randomise and prove
+        let (randomised_ctxt, proof) = ctxt.randomise_ciphertext_and_prove();
+
+        assert_eq!(sk.decrypt(&randomised_ctxt), ptxt);
+        assert!(!ctxt_rnd.verify_randomisation(&ctxt, &proof));
+    }
 
     #[test]
     fn test_homomorphic_addition() {
