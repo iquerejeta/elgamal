@@ -1,13 +1,13 @@
 use clear_on_drop::clear::Clear;
-use core::ops::{Mul, };
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, };
-use curve25519_dalek::ristretto::{RistrettoPoint};
+use core::ops::Mul;
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{RngCore, CryptoRng, };
-use sha2::{Digest, Sha512};
+use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha512};
 
-use zkp::{Transcript, CompactProof, };
+use zkp::{CompactProof, Transcript};
 
 use crate::ciphertext::*;
 use crate::public::*;
@@ -55,11 +55,11 @@ impl SecretKey {
 
         let signature_scalar = random_signature
             + Scalar::from_hash(
-            Sha512::new()
-                .chain(signature_point.compress().to_bytes())
-                .chain(pk.to_bytes())
-                .chain(message.compress().to_bytes()),
-        ) * self.0;
+                Sha512::new()
+                    .chain(signature_point.compress().to_bytes())
+                    .chain(pk.to_bytes())
+                    .chain(message.compress().to_bytes()),
+            ) * self.0;
 
         (signature_scalar, signature_point)
     }
@@ -86,7 +86,11 @@ impl SecretKey {
 
     /// Prove correct decryption
     /// (x), (A, B, H), (G) : A = (x * B), H = (x * G)
-    pub fn prove_correct_decryption(&self, ciphertext: &Ciphertext, message: &RistrettoPoint) -> CompactProof {
+    pub fn prove_correct_decryption(
+        &self,
+        ciphertext: &Ciphertext,
+        message: &RistrettoPoint,
+    ) -> CompactProof {
         let pk = PublicKey::from(self);
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         let (proof, _) = dleq::prove_compact(
@@ -97,7 +101,7 @@ impl SecretKey {
                 B: &ciphertext.points.0,
                 H: &pk.get_point(),
                 G: &RISTRETTO_BASEPOINT_POINT,
-            }
+            },
         );
         proof
     }
@@ -138,7 +142,7 @@ fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_core::{OsRng, };
+    use rand_core::OsRng;
     #[test]
     fn create_and_verify_sk_knowledge() {
         let mut csprng = OsRng;

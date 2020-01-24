@@ -1,5 +1,5 @@
 use core::ops::{Add, Div, Mul, Sub};
-use curve25519_dalek::ristretto::{RistrettoPoint};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 
@@ -141,9 +141,9 @@ define_div_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use crate::private::SecretKey;
-    use rand_core::{OsRng, };
+    use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+    use rand_core::OsRng;
 
     #[test]
     fn test_homomorphic_addition() {

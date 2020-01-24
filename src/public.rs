@@ -1,12 +1,12 @@
 use clear_on_drop::clear::Clear;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_COMPRESSED};
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{OsRng, };
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
-use zkp::{Transcript, CompactProof, };
+use zkp::{CompactProof, Transcript};
 
 use crate::ciphertext::*;
 
@@ -104,7 +104,11 @@ impl PublicKey {
     ///       assert!(!pk.verify_signature(&RistrettoPoint::random(&mut csprng), signature))
     /// # }
     /// ```
-    pub fn verify_signature(self, message: &RistrettoPoint, signature: (Scalar, RistrettoPoint)) -> bool {
+    pub fn verify_signature(
+        self,
+        message: &RistrettoPoint,
+        signature: (Scalar, RistrettoPoint),
+    ) -> bool {
         let verification_hash = Scalar::from_hash(
             Sha512::new()
                 .chain(signature.1.compress().to_bytes())
@@ -147,7 +151,8 @@ impl PublicKey {
                 A: &self.0.compress(),
                 G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
-        ).is_ok()
+        )
+        .is_ok()
     }
 
     /// Verify correct decryption
@@ -176,7 +181,12 @@ impl PublicKey {
     ///    assert!(pk.verify_correct_decryption(&proof, &ciphertext, &decryption));
     /// # }
     /// ```
-    pub fn verify_correct_decryption(self, proof: &CompactProof, ciphertext: &Ciphertext, plaintext: &RistrettoPoint) -> bool {
+    pub fn verify_correct_decryption(
+        self,
+        proof: &CompactProof,
+        ciphertext: &Ciphertext,
+        plaintext: &RistrettoPoint,
+    ) -> bool {
         let mut transcript = Transcript::new(b"ProveCorrectDecryption");
         dleq::verify_compact(
             &proof,
@@ -187,7 +197,8 @@ impl PublicKey {
                 H: &self.get_point().compress(),
                 G: &RISTRETTO_BASEPOINT_COMPRESSED,
             },
-        ).is_ok()
+        )
+        .is_ok()
     }
 
     /// Convert to bytes
@@ -217,30 +228,25 @@ impl PartialEq for PublicKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use curve25519_dalek::ristretto::CompressedRistretto;
     use crate::private::SecretKey;
+    use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
     fn test_encryption() {
-        let sk = SecretKey::from(Scalar::from_bytes_mod_order(
-            [
-                0x90, 0x76, 0x33, 0xfe, 0x1c, 0x4b, 0x66, 0xa4,
-                0xa2, 0x8d, 0x2d, 0xd7, 0x67, 0x83, 0x86, 0xc3,
-                0x53, 0xd0, 0xde, 0x54, 0x55, 0xd4, 0xfc, 0x9d,
-                0xe8, 0xef, 0x7a, 0xc3, 0x1f, 0x35, 0xbb, 0x05,
-            ]
-        ));
+        let sk = SecretKey::from(Scalar::from_bytes_mod_order([
+            0x90, 0x76, 0x33, 0xfe, 0x1c, 0x4b, 0x66, 0xa4, 0xa2, 0x8d, 0x2d, 0xd7, 0x67, 0x83,
+            0x86, 0xc3, 0x53, 0xd0, 0xde, 0x54, 0x55, 0xd4, 0xfc, 0x9d, 0xe8, 0xef, 0x7a, 0xc3,
+            0x1f, 0x35, 0xbb, 0x05,
+        ]));
 
         let pk = PublicKey::from(&sk);
 
-        let ptxt = CompressedRistretto(
-            [
-                226, 242, 174, 10, 106, 188, 78, 113, 168, 132,
-                169, 97, 197, 0, 81, 95, 88, 227, 11, 106, 165,
-                130, 221, 141, 182, 166, 89, 69, 224, 141, 45,
-                118
-            ]
-        ).decompress().unwrap();
+        let ptxt = CompressedRistretto([
+            226, 242, 174, 10, 106, 188, 78, 113, 168, 132, 169, 97, 197, 0, 81, 95, 88, 227, 11,
+            106, 165, 130, 221, 141, 182, 166, 89, 69, 224, 141, 45, 118,
+        ])
+        .decompress()
+        .unwrap();
 
         let ctxt = pk.encrypt(&ptxt);
         assert_eq!(ptxt, sk.decrypt(&ctxt));
@@ -257,7 +263,6 @@ mod tests {
 
         assert_eq!(pk, pk_from_bytes);
     }
-
 
     #[test]
     fn test_serde_pubkey() {

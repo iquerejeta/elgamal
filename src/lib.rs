@@ -13,6 +13,6 @@ mod notes {
     mod zkps {}
 }
 
-pub mod public;
-pub mod private;
 pub mod ciphertext;
+pub mod private;
+pub mod public;
