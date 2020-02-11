@@ -37,6 +37,11 @@ impl SecretKey {
         SecretKey(clamp_scalar(bytes).reduce())
     }
 
+    /// Get scalar value
+    pub fn get_scalar(&self) -> Scalar {
+        self.0
+    }
+
     /// Decrypt ciphertexts
     pub fn decrypt(&self, ciphertext: &Ciphertext) -> RistrettoPoint {
         let (point1, point2) = ciphertext.get_points();
