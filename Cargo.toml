@@ -1,6 +1,6 @@
 [package]
 name = "elgamal_ristretto"
-version = "0.2.1"
+version = "0.2.3"
 authors = ["Inigo Querejeta Azurmendi <querejeta.inigo@gmail.com>, Gonçalo Pestana <g6pestana@gmail.com>"]
 edition = "2018"
 exclude = ["**/.gitignore", ".gitignore","/target/*"]
@@ -23,7 +23,10 @@ serde = { version = "1.0", features = ["derive"] }
 bincode = "1"
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "path-to-your-header-file.html" ]
+rustdoc-args = [
+    "--html-in-header",
+    "katex-header.html"
+    ]
 
 [dev-dependencies]
 criterion = "0.2"
