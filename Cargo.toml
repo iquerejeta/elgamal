@@ -1,6 +1,6 @@
 [package]
 name = "elgamal_ristretto"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Inigo Querejeta Azurmendi <querejeta.inigo@gmail.com>, Gonçalo Pestana <g6pestana@gmail.com>"]
 edition = "2018"
 exclude = ["**/.gitignore", ".gitignore","/target/*"]
