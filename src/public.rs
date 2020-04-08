@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
@@ -199,6 +200,43 @@ impl PublicKey {
             },
         )
         .is_ok()
+    }
+
+    /// This function is only defined for testing purposes for the
+    /// `prove_correct_decryption_no_Merlin`. It should not be used. If verification is
+    /// performed in Rust, one should use the `prove_correct_decryption` and
+    /// `verify_correct_decryption` instead.
+    /// Example
+    /// ```
+    /// extern crate rand;
+    /// extern crate curve25519_dalek;
+    /// extern crate elgamal_ristretto;
+    /// use rand_core::OsRng;
+    /// use elgamal_ristretto::public::{PublicKey, };
+    /// use elgamal_ristretto::private::{SecretKey, };
+    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    ///
+    /// # fn main() {
+    ///    let mut csprng = OsRng;
+    ///    let sk = SecretKey::new(&mut csprng);
+    ///    let pk = PublicKey::from(&sk);
+    ///
+    ///    let plaintext = RistrettoPoint::random(&mut csprng);
+    ///    let ciphertext = pk.encrypt(&plaintext);
+    ///
+    ///    let decryption = sk.decrypt(&ciphertext);
+    ///    let proof = sk.prove_correct_decryption_no_Merlin(&ciphertext, &decryption);
+    ///
+    ///    assert!(pk.verify_correct_decryption_no_Merlin(&proof, &ciphertext, &decryption));
+    /// # }
+    /// ```
+    pub fn verify_correct_decryption_no_Merlin(
+        self,
+        proof: &((CompressedRistretto, CompressedRistretto), Scalar),
+        ciphertext: &Ciphertext,
+        message: &RistrettoPoint,
+    ) -> bool {
+        I
     }
 
     /// Convert to bytes
