@@ -236,7 +236,22 @@ impl PublicKey {
         ciphertext: &Ciphertext,
         message: &RistrettoPoint,
     ) -> bool {
-        I
+        let ((announcement_base_G, announcement_base_ctxtp0), response) = proof;
+        let challenge = Scalar::from_hash(
+            Sha512::new()
+                .chain(message.compress().to_bytes())
+                .chain(ciphertext.points.0.compress().to_bytes())
+                .chain(ciphertext.points.1.compress().to_bytes())
+                .chain(announcement_base_G.to_bytes())
+                .chain(announcement_base_ctxtp0.to_bytes())
+                .chain(RISTRETTO_BASEPOINT_COMPRESSED.to_bytes())
+                .chain(self.get_point().compress().to_bytes()),
+        );
+        response * RISTRETTO_BASEPOINT_POINT
+            == announcement_base_G.decompress().unwrap() + challenge * self.get_point()
+            && response * ciphertext.points.0
+                == announcement_base_ctxtp0.decompress().unwrap()
+                    + challenge * (ciphertext.points.1 - message)
     }
 
     /// Convert to bytes
