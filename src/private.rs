@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use core::ops::Mul;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_COMPRESSED};
-use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{CryptoRng, RngCore, OsRng};
+use rand_core::{CryptoRng, OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
@@ -140,7 +140,13 @@ impl SecretKey {
         );
 
         let response = announcement_random + challenge * self.get_scalar();
-        ((announcement_base_G.compress(), announcement_base_ctxtp0.compress()), response)
+        (
+            (
+                announcement_base_G.compress(),
+                announcement_base_ctxtp0.compress(),
+            ),
+            response,
+        )
     }
 }
 
