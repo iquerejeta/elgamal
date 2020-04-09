@@ -126,9 +126,13 @@
 
 #[macro_use]
 extern crate zkp;
+extern crate bn;
+extern crate rustc_serialize;
+
 #[macro_use]
 pub mod macros;
 
+mod bn_curve;
 pub mod ciphertext;
 pub mod private;
 pub mod public;
