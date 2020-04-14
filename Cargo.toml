@@ -20,9 +20,12 @@ rand = "~0.3.14"
 sha2 = "0.8.0"
 clear_on_drop = { version = "0.2" }
 serde = { version = "1.0", features = ["derive"] }
-bincode = "1"
 bn = "0.4.3"
-rustc-serialize = "0.3"
+
+[dependencies.bincode]
+version = "1.2"
+default-features = false
+features = ["rustc-serialize"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

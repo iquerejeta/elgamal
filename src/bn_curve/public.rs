@@ -6,6 +6,8 @@ use bn::{Fr, G1, Group};
 use clear_on_drop::clear::Clear;
 use rand_core::OsRng;
 use rand::{thread_rng};
+use bincode::rustc_serialize::{encode, decode};
+use bincode::SizeLimit::Infinite;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
@@ -103,29 +105,32 @@ impl PublicKey {
     // ///    assert!(pk.verify_correct_decryption_no_Merlin(&proof, &ciphertext, &decryption));
     // /// # }
     // /// ```
-    // pub fn verify_correct_decryption_no_Merlin(
-    //     self,
-    //     proof: &((CompressedRistretto, CompressedRistretto), Scalar),
-    //     ciphertext: &Ciphertext,
-    //     message: &RistrettoPoint,
-    // ) -> bool {
-    //     let ((announcement_base_G, announcement_base_ctxtp0), response) = proof;
-    //     let challenge = Scalar::from_hash(
-    //         Sha512::new()
-    //             .chain(message.compress().to_bytes())
-    //             .chain(ciphertext.points.0.compress().to_bytes())
-    //             .chain(ciphertext.points.1.compress().to_bytes())
-    //             .chain(announcement_base_G.to_bytes())
-    //             .chain(announcement_base_ctxtp0.to_bytes())
-    //             .chain(RISTRETTO_BASEPOINT_COMPRESSED.to_bytes())
-    //             .chain(self.get_point().compress().to_bytes()),
-    //     );
-    //     response * RISTRETTO_BASEPOINT_POINT
-    //         == announcement_base_G.decompress().unwrap() + challenge * self.get_point()
-    //         && response * ciphertext.points.0
-    //         == announcement_base_ctxtp0.decompress().unwrap()
-    //         + challenge * (ciphertext.points.1 - message)
-    // }
+    pub fn verify_correct_decryption_no_Merlin(
+        self,
+        proof: ((G1, G1), Fr),
+        ciphertext: Ciphertext,
+        message: G1,
+    ) -> bool {
+        let ((announcement_base_G, announcement_base_ctxtp0), response) = proof;
+        let hash = Sha512::new()
+            .chain(encode(&message, Infinite).unwrap())
+            .chain(encode(&ciphertext.points.0, Infinite).unwrap())
+            .chain(encode(&ciphertext.points.1, Infinite).unwrap())
+            .chain(encode(&announcement_base_G, Infinite).unwrap())
+            .chain(encode(&announcement_base_ctxtp0, Infinite).unwrap())
+            .chain(encode(&G1::one(), Infinite).unwrap())
+            .chain(encode(&self.get_point(), Infinite).unwrap());
+
+        let mut output = [0u8; 64];
+        output.copy_from_slice(hash.result().as_slice());
+        let challenge = Fr::interpret(&output);
+
+        G1::one() * response
+            == announcement_base_G + self.get_point() * challenge
+            && ciphertext.points.0 * response
+            == announcement_base_ctxtp0
+            + (ciphertext.points.1 - message) * challenge
+    }
 
     // /// Convert to bytes
     // pub fn to_bytes(&self) -> [u8; 32] {

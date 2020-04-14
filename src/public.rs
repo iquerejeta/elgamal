@@ -282,6 +282,7 @@ impl PartialEq for PublicKey {
 mod tests {
     use super::*;
     use crate::private::SecretKey;
+    use bincode;
     use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
@@ -319,7 +320,6 @@ mod tests {
 
     #[test]
     fn test_serde_pubkey() {
-        use bincode;
 
         let mut csprng = OsRng;
         let sk = SecretKey::new(&mut csprng);
