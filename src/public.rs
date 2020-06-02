@@ -207,8 +207,8 @@ impl PublicKey {
     }
 
     /// Generate public key from bytes
-    pub fn from_bytes(bytes: &[u8]) -> PublicKey {
-        PublicKey(CompressedRistretto::from_slice(bytes).decompress().unwrap())
+    pub fn from_bytes(bytes: &[u8]) -> Option<PublicKey> {
+        Some(PublicKey(CompressedRistretto::from_slice(bytes).decompress()?))
     }
 }
 
