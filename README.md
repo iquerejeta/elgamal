@@ -4,7 +4,7 @@
 
 Efficient pure-Rust library for the [ElGamal][elgamal] additive homomorphic
 encryption scheme using the [Ristretto][ristretto] primer order group using the ristretto255 
-implementation in [curve25519-dalek][curve-dalek]. 
+implementation in [`curve25519-dalek`][curve25519-dalek]. 
 
 This library provides implementations of: 
 * Additively Homomorphic ElGamal Encryption and decryption.

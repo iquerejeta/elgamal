@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use core::ops::Mul;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use rand_core::{CryptoRng, OsRng, RngCore};
@@ -57,7 +57,7 @@ impl SecretKey {
                 .chain(message.compress().to_bytes())
                 .chain(self.0.to_bytes()),
         );
-        let signature_point = &random_signature * &RISTRETTO_BASEPOINT_POINT;
+        let signature_point = random_signature * RISTRETTO_BASEPOINT_POINT;
 
         let signature_scalar = random_signature
             + Scalar::from_hash(
@@ -128,15 +128,12 @@ impl SecretKey {
         let announcement_base_G = announcement_random * RISTRETTO_BASEPOINT_POINT;
         let announcement_base_ctxtp0 = announcement_random * ciphertext.points.0;
 
-        let challenge = Scalar::from_hash(
-            Sha512::new()
-                .chain(message.compress().to_bytes())
-                .chain(ciphertext.points.0.compress().to_bytes())
-                .chain(ciphertext.points.1.compress().to_bytes())
-                .chain(announcement_base_G.compress().to_bytes())
-                .chain(announcement_base_ctxtp0.compress().to_bytes())
-                .chain(RISTRETTO_BASEPOINT_COMPRESSED.to_bytes())
-                .chain(pk.get_point().compress().to_bytes()),
+        let challenge = compute_challenge(
+            &message.compress(),
+            ciphertext,
+            &announcement_base_G.compress(),
+            &announcement_base_ctxtp0.compress(),
+            &pk,
         );
 
         let response = announcement_random + challenge * self.get_scalar();
@@ -154,7 +151,7 @@ impl SecretKey {
 impl<'a, 'b> Mul<&'b Scalar> for &'a SecretKey {
     type Output = Scalar;
     fn mul(self, other: &'b Scalar) -> Scalar {
-        &self.0 * other
+        self.0 * other
     }
 }
 
@@ -167,7 +164,7 @@ impl From<Scalar> for SecretKey {
 impl<'a> From<&'a SecretKey> for PublicKey {
     /// Given a secret key, compute its corresponding Public key
     fn from(secret: &'a SecretKey) -> PublicKey {
-        PublicKey::from(&RISTRETTO_BASEPOINT_POINT * &secret.0)
+        PublicKey::from(RISTRETTO_BASEPOINT_POINT * secret.0)
     }
 }
 
@@ -175,7 +172,7 @@ define_mul_variants!(LHS = SecretKey, RHS = Scalar, Output = Scalar);
 
 // "Decode" a scalar from a 32-byte array. Read more regarding this key clamping.
 fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
-    let mut s: [u8; 32] = scalar.clone();
+    let mut s: [u8; 32] = scalar;
     s[0] &= 248;
     s[31] &= 127;
     s[31] |= 64;
