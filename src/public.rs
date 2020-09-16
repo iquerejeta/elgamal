@@ -259,7 +259,7 @@ mod tests {
         let pk = PublicKey::from(&sk);
 
         let pk_byte = pk.to_bytes();
-        let pk_from_bytes = PublicKey::from_bytes(&pk_byte);
+        let pk_from_bytes = PublicKey::from_bytes(&pk_byte).unwrap();
 
         assert_eq!(pk, pk_from_bytes);
     }
