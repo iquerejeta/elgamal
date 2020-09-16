@@ -1,9 +1,10 @@
+#![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use core::ops::Mul;
-use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
-use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::{CryptoRng, OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 
@@ -56,7 +57,7 @@ impl SecretKey {
                 .chain(message.compress().to_bytes())
                 .chain(self.0.to_bytes()),
         );
-        let signature_point = &random_signature * &RISTRETTO_BASEPOINT_POINT;
+        let signature_point = random_signature * RISTRETTO_BASEPOINT_POINT;
 
         let signature_scalar = random_signature
             + Scalar::from_hash(
@@ -110,13 +111,47 @@ impl SecretKey {
         );
         proof
     }
+
+    /// Prove correct decryption without depending on the zkp toolkit, which
+    /// uses Merlin for Transcripts. The latter is hard to mimic in solidity
+    /// smart contracts. To this end, we define this alternative proof of correct
+    /// decryption which allows us to proceed with the verification in solidity.
+    /// This function should only be used in the latter case. If the verification is
+    /// performed in rust, `prove_correct_decryption` function should be used.
+    pub fn prove_correct_decryption_no_Merlin(
+        &self,
+        ciphertext: &Ciphertext,
+        message: &RistrettoPoint,
+    ) -> ((CompressedRistretto, CompressedRistretto), Scalar) {
+        let pk = PublicKey::from(self);
+        let announcement_random = Scalar::random(&mut OsRng);
+        let announcement_base_G = announcement_random * RISTRETTO_BASEPOINT_POINT;
+        let announcement_base_ctxtp0 = announcement_random * ciphertext.points.0;
+
+        let challenge = compute_challenge(
+            &message.compress(),
+            ciphertext,
+            &announcement_base_G.compress(),
+            &announcement_base_ctxtp0.compress(),
+            &pk,
+        );
+
+        let response = announcement_random + challenge * self.get_scalar();
+        (
+            (
+                announcement_base_G.compress(),
+                announcement_base_ctxtp0.compress(),
+            ),
+            response,
+        )
+    }
 }
 
 // todo: why do we have this?
 impl<'a, 'b> Mul<&'b Scalar> for &'a SecretKey {
     type Output = Scalar;
     fn mul(self, other: &'b Scalar) -> Scalar {
-        &self.0 * other
+        self.0 * other
     }
 }
 
@@ -129,7 +164,7 @@ impl From<Scalar> for SecretKey {
 impl<'a> From<&'a SecretKey> for PublicKey {
     /// Given a secret key, compute its corresponding Public key
     fn from(secret: &'a SecretKey) -> PublicKey {
-        PublicKey::from(&RISTRETTO_BASEPOINT_POINT * &secret.0)
+        PublicKey::from(RISTRETTO_BASEPOINT_POINT * secret.0)
     }
 }
 
@@ -137,7 +172,7 @@ define_mul_variants!(LHS = SecretKey, RHS = Scalar, Output = Scalar);
 
 // "Decode" a scalar from a 32-byte array. Read more regarding this key clamping.
 fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
-    let mut s: [u8; 32] = scalar.clone();
+    let mut s: [u8; 32] = scalar;
     s[0] &= 248;
     s[31] &= 127;
     s[31] |= 64;
@@ -196,6 +231,36 @@ mod tests {
         let proof = sk.prove_correct_decryption(&ciphertext, &fake_decryption);
 
         assert!(!pk.verify_correct_decryption(&proof, &ciphertext, &fake_decryption));
+    }
+
+    #[test]
+    fn prove_correct_decryption_no_Merlin() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(&plaintext);
+
+        let decryption = sk.decrypt(&ciphertext);
+        let proof = sk.prove_correct_decryption_no_Merlin(&ciphertext, &decryption);
+
+        assert!(pk.verify_correct_decryption_no_Merlin(&proof, &ciphertext, &decryption));
+    }
+
+    #[test]
+    fn prove_false_decryption_no_Merlin() {
+        let mut csprng = OsRng;
+        let sk = SecretKey::new(&mut csprng);
+        let pk = PublicKey::from(&sk);
+
+        let plaintext = RistrettoPoint::random(&mut csprng);
+        let ciphertext = pk.encrypt(&plaintext);
+
+        let fake_decryption = RistrettoPoint::random(&mut csprng);
+        let proof = sk.prove_correct_decryption_no_Merlin(&ciphertext, &fake_decryption);
+
+        assert!(!pk.verify_correct_decryption_no_Merlin(&proof, &ciphertext, &fake_decryption));
     }
 
     #[test]

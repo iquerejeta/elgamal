@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
@@ -24,9 +25,6 @@ impl PublicKey {
     ///
     /// #Example
     /// ```
-    /// extern crate rand;
-    /// extern crate curve25519_dalek;
-    /// extern crate elgamal_ristretto;
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
@@ -62,8 +60,8 @@ impl PublicKey {
         let mut csprng: OsRng = OsRng;
         let mut random: Scalar = Scalar::random(&mut csprng);
 
-        let random_generator = &RISTRETTO_BASEPOINT_POINT * &random;
-        let encrypted_plaintext = message + &self.0 * &random;
+        let random_generator = RISTRETTO_BASEPOINT_POINT * random;
+        let encrypted_plaintext = message + self.0 * random;
         random.clear();
         Ciphertext {
             pk: self,
@@ -80,9 +78,6 @@ impl PublicKey {
     ///
     /// #Example
     /// ```
-    /// extern crate rand;
-    /// extern crate curve25519_dalek;
-    /// extern crate elgamal_ristretto;
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
@@ -116,18 +111,13 @@ impl PublicKey {
                 .chain(message.compress().to_bytes()),
         );
 
-        let check =
-            &signature.0 * &RISTRETTO_BASEPOINT_POINT == signature.1 + verification_hash * self.0;
-        check
+        signature.0 * RISTRETTO_BASEPOINT_POINT == signature.1 + verification_hash * self.0
     }
 
     /// Verify proof of knowledege of private key related to a public key
     ///
     /// Example
     /// ```
-    /// extern crate rand;
-    /// extern crate curve25519_dalek;
-    /// extern crate elgamal_ristretto;
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
@@ -159,9 +149,6 @@ impl PublicKey {
     ///
     /// Example
     /// ```
-    /// extern crate rand;
-    /// extern crate curve25519_dalek;
-    /// extern crate elgamal_ristretto;
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
@@ -201,6 +188,52 @@ impl PublicKey {
         .is_ok()
     }
 
+    /// This function is only defined for testing purposes for the
+    /// `prove_correct_decryption_no_Merlin`. It should not be used. If verification is
+    /// performed in Rust, one should use the `prove_correct_decryption` and
+    /// `verify_correct_decryption` instead.
+    /// Example
+    /// ```
+    /// use rand_core::OsRng;
+    /// use elgamal_ristretto::public::{PublicKey, };
+    /// use elgamal_ristretto::private::{SecretKey, };
+    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    ///
+    /// # fn main() {
+    ///    let mut csprng = OsRng;
+    ///    let sk = SecretKey::new(&mut csprng);
+    ///    let pk = PublicKey::from(&sk);
+    ///
+    ///    let plaintext = RistrettoPoint::random(&mut csprng);
+    ///    let ciphertext = pk.encrypt(&plaintext);
+    ///
+    ///    let decryption = sk.decrypt(&ciphertext);
+    ///    let proof = sk.prove_correct_decryption_no_Merlin(&ciphertext, &decryption);
+    ///
+    ///    assert!(pk.verify_correct_decryption_no_Merlin(&proof, &ciphertext, &decryption));
+    /// # }
+    /// ```
+    pub fn verify_correct_decryption_no_Merlin(
+        self,
+        proof: &((CompressedRistretto, CompressedRistretto), Scalar),
+        ciphertext: &Ciphertext,
+        message: &RistrettoPoint,
+    ) -> bool {
+        let ((announcement_base_G, announcement_base_ctxtp0), response) = proof;
+        let challenge = compute_challenge(
+            &message.compress(),
+            ciphertext,
+            announcement_base_G,
+            announcement_base_ctxtp0,
+            &self,
+        );
+        response * RISTRETTO_BASEPOINT_POINT
+            == announcement_base_G.decompress().unwrap() + challenge * self.get_point()
+            && response * ciphertext.points.0
+                == announcement_base_ctxtp0.decompress().unwrap()
+                    + challenge * (ciphertext.points.1 - message)
+    }
+
     /// Convert to bytes
     pub fn to_bytes(&self) -> [u8; 32] {
         self.0.compress().to_bytes()
@@ -210,6 +243,27 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Option<PublicKey> {
         Some(PublicKey(CompressedRistretto::from_slice(bytes).decompress()?))
     }
+}
+
+/// Compute challenge for the proof of correct decryption. Used in the variation
+/// that does not use Merlin.
+pub(crate) fn compute_challenge(
+    message: &CompressedRistretto,
+    ciphertext: &Ciphertext,
+    announcement_base_G: &CompressedRistretto,
+    announcement_base_ctxtp0: &CompressedRistretto,
+    pk: &PublicKey,
+) -> Scalar {
+    Scalar::from_hash(
+        Sha512::new()
+            .chain(message.to_bytes())
+            .chain(ciphertext.points.0.compress().to_bytes())
+            .chain(ciphertext.points.1.compress().to_bytes())
+            .chain(announcement_base_G.to_bytes())
+            .chain(announcement_base_ctxtp0.to_bytes())
+            .chain(RISTRETTO_BASEPOINT_COMPRESSED.to_bytes())
+            .chain(pk.get_point().compress().to_bytes()),
+    )
 }
 
 impl From<RistrettoPoint> for PublicKey {

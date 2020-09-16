@@ -18,7 +18,7 @@ pub struct Ciphertext {
 
 impl Ciphertext {
     pub fn get_points(self) -> (RistrettoPoint, RistrettoPoint) {
-        return (self.points.0, self.points.1);
+        (self.points.0, self.points.1)
     }
 
     pub fn randomise_ciphertext_and_prove(self) -> (Ciphertext, CompactProof) {
@@ -36,9 +36,9 @@ impl Ciphertext {
             &mut transcript,
             dleq::ProveAssignments {
                 x: &randomiser,
-                A: &(&randomised_ciphertext.points.0 - &self.points.0),
+                A: &(randomised_ciphertext.points.0 - self.points.0),
                 B: &RISTRETTO_BASEPOINT_POINT,
-                H: &(&randomised_ciphertext.points.1 - &self.points.1),
+                H: &(randomised_ciphertext.points.1 - self.points.1),
                 G: &self.pk.get_point(),
             },
         );
@@ -53,9 +53,9 @@ impl Ciphertext {
             &proof,
             &mut transcript,
             dleq::VerifyAssignments {
-                A: &(&self.points.0 - &plain_ciphertext.points.0).compress(),
+                A: &(self.points.0 - plain_ciphertext.points.0).compress(),
                 B: &RISTRETTO_BASEPOINT_COMPRESSED,
-                H: &(&self.points.1 - &plain_ciphertext.points.1).compress(),
+                H: &(self.points.1 - plain_ciphertext.points.1).compress(),
                 G: &plain_ciphertext.pk.get_point().compress(),
             },
         )
@@ -73,8 +73,8 @@ impl<'a, 'b> Add<&'b Ciphertext> for &'a Ciphertext {
         Ciphertext {
             pk: self.pk,
             points: (
-                &self.points.0 + &other.points.0,
-                &self.points.1 + &other.points.1,
+                self.points.0 + other.points.0,
+                self.points.1 + other.points.1,
             ),
         }
     }
@@ -92,8 +92,8 @@ impl<'a, 'b> Sub<&'b Ciphertext> for &'a Ciphertext {
         Ciphertext {
             pk: self.pk,
             points: (
-                &self.points.0 - &other.points.0,
-                &self.points.1 - &other.points.1,
+                self.points.0 - other.points.0,
+                self.points.1 - other.points.1,
             ),
         }
     }
@@ -107,7 +107,7 @@ impl<'a, 'b> Add<&'b Ciphertext> for &'a RistrettoPoint {
     fn add(self, other: &'b Ciphertext) -> Ciphertext {
         Ciphertext {
             pk: other.pk,
-            points: (other.points.0, self + &other.points.1),
+            points: (other.points.0, self + other.points.1),
         }
     }
 }
@@ -120,7 +120,7 @@ impl<'a, 'b> Add<&'b RistrettoPoint> for &'a Ciphertext {
     fn add(self, other: &'b RistrettoPoint) -> Ciphertext {
         Ciphertext {
             pk: self.pk,
-            points: (self.points.0, &self.points.1 + other),
+            points: (self.points.0, self.points.1 + other),
         }
     }
 }
@@ -133,7 +133,7 @@ impl<'a, 'b> Sub<&'b Ciphertext> for &'a RistrettoPoint {
     fn sub(self, other: &'b Ciphertext) -> Ciphertext {
         Ciphertext {
             pk: other.pk,
-            points: (-other.points.0, self - &other.points.1),
+            points: (-other.points.0, self - other.points.1),
         }
     }
 }
@@ -146,7 +146,7 @@ impl<'a, 'b> Sub<&'b RistrettoPoint> for &'a Ciphertext {
     fn sub(self, other: &'b RistrettoPoint) -> Ciphertext {
         Ciphertext {
             pk: self.pk,
-            points: (self.points.0, &self.points.1 - other),
+            points: (self.points.0, self.points.1 - other),
         }
     }
 }
@@ -159,7 +159,7 @@ impl<'a, 'b> Mul<&'b Scalar> for &'a Ciphertext {
     fn mul(self, other: &'b Scalar) -> Ciphertext {
         Ciphertext {
             pk: self.pk,
-            points: (&self.points.0 * other, &self.points.1 * other),
+            points: (self.points.0 * other, self.points.1 * other),
         }
     }
 }
@@ -173,8 +173,8 @@ impl<'a, 'b> Div<&'b Scalar> for &'a Ciphertext {
         Ciphertext {
             pk: self.pk,
             points: (
-                &self.points.0 * &other.invert(),
-                &self.points.1 * &other.invert(),
+                self.points.0 * other.invert(),
+                self.points.1 * other.invert(),
             ),
         }
     }
