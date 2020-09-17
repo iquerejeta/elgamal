@@ -4,7 +4,6 @@ use criterion::Criterion;
 
 extern crate curve25519_dalek;
 extern crate elgamal_ristretto;
-extern crate rand;
 
 use curve25519_dalek::ristretto::RistrettoPoint;
 use elgamal_ristretto::private::SecretKey;
@@ -21,7 +20,7 @@ fn encrypt_ciphertext(c: &mut Criterion) {
         let ptxt = RistrettoPoint::random(&mut csprng);
 
         b.iter(|| {
-            pk.encrypt(ptxt);
+            pk.encrypt(&ptxt);
         })
     });
 }
@@ -34,10 +33,10 @@ fn decrypt_ciphertext(c: &mut Criterion) {
         let pk = PublicKey::from(&sk);
 
         let ptxt = RistrettoPoint::random(&mut csprng);
-        let ctxt = pk.encrypt(ptxt);
+        let ctxt = pk.encrypt(&ptxt);
 
         b.iter(|| {
-            sk.decrypt(ctxt);
+            sk.decrypt(&ctxt);
         })
     });
 }
@@ -51,7 +50,7 @@ fn signature(c: &mut Criterion) {
         let msg = RistrettoPoint::random(&mut csprng);
 
         b.iter(|| {
-            sk.sign(msg);
+            sk.sign(&msg);
         })
     });
 }
@@ -64,7 +63,7 @@ fn verify_signature(c: &mut Criterion) {
         let pk = PublicKey::from(&sk);
 
         let msg = RistrettoPoint::random(&mut csprng);
-        let signature = sk.sign(msg);
+        let signature = sk.sign(&msg);
 
         b.iter(|| pk.verify_signature(&msg, signature))
     });
@@ -80,8 +79,8 @@ fn ciphertext_addition(c: &mut Criterion) {
         let ptxt1 = RistrettoPoint::random(&mut csprng);
         let ptxt2 = RistrettoPoint::random(&mut csprng);
 
-        let ctxt1 = pk.encrypt(ptxt1);
-        let ctxt2 = pk.encrypt(ptxt2);
+        let ctxt1 = pk.encrypt(&ptxt1);
+        let ctxt2 = pk.encrypt(&ptxt2);
 
         b.iter(|| {
             let _ = ctxt1 + ctxt2;
