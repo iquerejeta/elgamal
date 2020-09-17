@@ -2,9 +2,6 @@
 extern crate criterion;
 use criterion::Criterion;
 
-extern crate curve25519_dalek;
-extern crate elgamal_ristretto;
-
 use curve25519_dalek::ristretto::RistrettoPoint;
 use elgamal_ristretto::private::SecretKey;
 use elgamal_ristretto::public::PublicKey;
