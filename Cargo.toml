@@ -16,7 +16,6 @@ license = "MIT"
 curve25519-dalek = { version = "2.0.0", default-features = false, features = ["serde"] }
 zkp = "0.7.0"
 rand_core = { version = "0.5.1", default-features = false }
-rand = { version = "0.6.0", default-features = true }
 sha2 = "0.8.0"
 clear_on_drop = { version = "0.2" }
 serde = { version = "1.0", features = ["derive"] }
