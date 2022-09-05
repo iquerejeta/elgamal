@@ -1,10 +1,10 @@
 use core::ops::{Add, Div, Mul, Sub};
-use curve25519_dalek::ristretto::RistrettoPoint;
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek_ng::ristretto::RistrettoPoint;
+use curve25519_dalek_ng::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 
 use crate::public::*;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek_ng::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
 use rand_core::OsRng;
 use zkp::{CompactProof, Transcript};
 
@@ -186,7 +186,7 @@ define_div_variants!(LHS = Ciphertext, RHS = Scalar, Output = Ciphertext);
 mod tests {
     use super::*;
     use crate::private::SecretKey;
-    use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+    use curve25519_dalek_ng::constants::RISTRETTO_BASEPOINT_POINT;
 
     #[test]
     fn test_randomisation_and_proof() {

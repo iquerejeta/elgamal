@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek_ng::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek_ng::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek_ng::scalar::Scalar;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
@@ -28,8 +28,8 @@ impl PublicKey {
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::{RistrettoPoint, };
-    /// use curve25519_dalek::scalar::{Scalar, };
+    /// use curve25519_dalek_ng::ristretto::{RistrettoPoint, };
+    /// use curve25519_dalek_ng::scalar::{Scalar, };
     ///
     /// # fn main() {
     ///        let mut csprng = OsRng;
@@ -81,7 +81,7 @@ impl PublicKey {
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
     ///       // Generate key-pair
@@ -121,7 +121,7 @@ impl PublicKey {
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
     ///       let mut csprng = OsRng;
@@ -152,7 +152,7 @@ impl PublicKey {
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
     ///    let mut csprng = OsRng;
@@ -197,7 +197,7 @@ impl PublicKey {
     /// use rand_core::OsRng;
     /// use elgamal_ristretto::public::{PublicKey, };
     /// use elgamal_ristretto::private::{SecretKey, };
-    /// use curve25519_dalek::ristretto::RistrettoPoint;
+    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
     ///
     /// # fn main() {
     ///    let mut csprng = OsRng;
@@ -283,7 +283,7 @@ impl PartialEq for PublicKey {
 mod tests {
     use super::*;
     use crate::private::SecretKey;
-    use curve25519_dalek::ristretto::CompressedRistretto;
+    use curve25519_dalek_ng::ristretto::CompressedRistretto;
 
     #[test]
     fn test_encryption() {
