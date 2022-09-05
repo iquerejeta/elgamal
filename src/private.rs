@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 use clear_on_drop::clear::Clear;
 use core::ops::Mul;
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT};
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek_ng::constants::{RISTRETTO_BASEPOINT_POINT};
+use curve25519_dalek_ng::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek_ng::scalar::Scalar;
 use rand_core::{CryptoRng, OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
